@@ -1,9 +1,9 @@
 ##Spring Configuration
 server:
-  port: 8080
+  port: 8081
 spring:
   application:
-    name: CrediYa
+    name: CrediYa_Applications
   devtools:
     add-properties: false
   h2:
@@ -14,7 +14,7 @@ spring:
     include:
   adapters:
     mariadb:
-      database: "crediya_autenticacion"
+      database: "crediya_applications"
       host: "localhost"
       port: 3306
       username: "crediya_user"
