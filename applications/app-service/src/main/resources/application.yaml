@@ -1,17 +1,16 @@
-##Spring Configuration
 server:
   port: 8081
 spring:
   application:
-    name: CrediYa_Applications
+    name: "CrediYa_Applications"
   devtools:
     add-properties: false
   h2:
     console:
       enabled: true
-      path: /h2
+      path: "/h2"
   profiles:
-    include:
+    include: null
   adapters:
     mariadb:
       database: "crediya_applications"
@@ -23,3 +22,32 @@ spring:
         initial-size: 12
         max-size: 15
         max-idle-time: 10
+adapter:
+  restconsumer:
+    timeout: 5000
+    url: "http://localhost:8080"
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+resilience4j:
+  circuitbreaker:
+    instances:
+      testGet:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: "2s"
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: "10s"
+      testPost:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: "2s"
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: "10s"
