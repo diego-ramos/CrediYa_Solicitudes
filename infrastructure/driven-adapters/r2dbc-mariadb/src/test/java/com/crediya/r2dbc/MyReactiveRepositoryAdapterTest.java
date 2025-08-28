@@ -19,10 +19,10 @@ class MyReactiveRepositoryAdapterTest {
     // TODO: change four you own tests
 
     @InjectMocks
-    MyReactiveRepositoryAdapter repositoryAdapter;
+    ApplicationReactiveRepositoryAdapter repositoryAdapter;
 
     @Mock
-    MyReactiveRepository repository;
+    ApplicationReactiveRepository repository;
 
     @Mock
     ObjectMapper mapper;

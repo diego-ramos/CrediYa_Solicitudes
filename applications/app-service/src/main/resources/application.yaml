@@ -11,17 +11,17 @@ spring:
       path: "/h2"
   profiles:
     include: null
-  adapters:
-    mariadb:
-      database: "crediya_applications"
-      host: "localhost"
-      port: 3306
-      username: "crediya_user"
-      password: "crediya123"
-      pool:
-        initial-size: 12
-        max-size: 15
-        max-idle-time: 10
+adapters:
+  mariadb:
+    database: "crediya_applications"
+    host: "localhost"
+    port: 3306
+    username: "crediya_user"
+    password: "crediya123"
+    pool:
+      initial-size: 12
+      max-size: 15
+      max-idle-time: 10
 adapter:
   restconsumer:
     timeout: 5000
@@ -30,6 +30,14 @@ management:
   health:
     circuitbreakers:
       enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
 resilience4j:
   circuitbreaker:
     instances:
@@ -51,3 +59,5 @@ resilience4j:
         slidingWindowSize: 10
         minimumNumberOfCalls: 10
         waitDurationInOpenState: "10s"
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8080"

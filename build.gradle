@@ -6,6 +6,8 @@ buildscript {
 		jacocoVersion = '0.8.13'
 		pitestVersion = '1.19.0-rc.1'
         lombokVersion = '1.18.38'
+        mapstructVersion = '1.6.3'
+        springDocOpenApiVersion = '2.6.0'
 	}
 }
 
