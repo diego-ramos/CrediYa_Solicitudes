@@ -17,7 +17,7 @@ import java.io.IOException;
 
 class RestConsumerTest {
 
-    private static RestConsumer restConsumer;
+    private static AuthenticationRestConsumer restConsumer;
 
     private static MockWebServer mockBackEnd;
 
@@ -27,7 +27,7 @@ class RestConsumerTest {
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
         var webClient = WebClient.builder().baseUrl(mockBackEnd.url("/").toString()).build();
-        restConsumer = new RestConsumer(webClient);
+        restConsumer = new AuthenticationRestConsumer(webClient);
     }
 
     @AfterAll

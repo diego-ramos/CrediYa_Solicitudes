@@ -15,7 +15,10 @@ public enum BusinessErrorMessage {
             "BUSS_ERR_S002", "Invalid email", VERIFY_YOUR_DATA
     ),
     INVALID_USER_IDENTIFICATION_NUMBER(
-            "BUSS_ERR_S002", "Invalid identification number", VERIFY_YOUR_DATA
+            "BUSS_ERR_S003", "Invalid identification number", VERIFY_YOUR_DATA
+    ),
+    USER_NOT_FOUND(
+            "BUSS_ERR_S004", "User not found", VERIFY_YOUR_DATA
     );
 
     private final String code;

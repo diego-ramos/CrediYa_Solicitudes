@@ -7,4 +7,5 @@ import lombok.*;
 @Builder(toBuilder = true)
 public class LoanType {
     private Integer id;
+    private String name;
 }
