@@ -18,9 +18,8 @@ import reactor.core.publisher.Mono;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationRestConsumer implements UserRepository {
-    private static final String SEARCH_USER_BY_IDENTIFICATION_NUMBER_URI = "api/v1/usuarios/identification-number/{x}"
-;    private final WebClient client;
-
+    private static final String SEARCH_USER_BY_IDENTIFICATION_NUMBER_URI = "api/v1/usuarios/identification-number/{x}";
+    private final WebClient client;
 
     @Override
     @CircuitBreaker(name = "usuarios/identification-number", fallbackMethod = "fallbackUser")

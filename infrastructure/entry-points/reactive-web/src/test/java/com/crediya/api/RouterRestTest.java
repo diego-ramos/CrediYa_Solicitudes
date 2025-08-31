@@ -1,100 +1,154 @@
 package com.crediya.api;
 
-import org.assertj.core.api.Assertions;
+import com.crediya.api.dto.ApplicationRequest;
+import com.crediya.api.dto.ApplicationResponse;
+import com.crediya.api.mapper.ApplicationMapper;
+import com.crediya.model.application.Application;
+import com.crediya.model.loantype.LoanType;
+import com.crediya.usecase.application.ApplicationUseCase;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 
-@ContextConfiguration(classes = {RouterRest.class, HandlerV1.class, HandlerV2.class})
+import java.math.BigDecimal;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+@ContextConfiguration(classes = {RouterRest.class, ApplicationHandlerV1.class})
 @WebFluxTest
 class RouterRestTest {
 
     @Autowired
     private WebTestClient webTestClient;
 
+    @MockitoBean
+    private ApplicationUseCase applicationUseCase;
+
+    @MockitoBean
+    private ApplicationMapper mapper;
+
     @Test
-    void testListenGETUseCaseV1() {
-        webTestClient.get()
-                .uri("/api/v1/usecase/path")
+    void shouldCreateApplication() {
+        Application app = new Application();
+        app.setIdentificationNumber(123);
+        app.setLoanTypeId(1L);
+
+        ApplicationRequest request = new ApplicationRequest(
+                123,
+                BigDecimal.valueOf(1_000_000),
+                12,
+                1
+        );
+
+        ApplicationResponse response = new ApplicationResponse(
+                123,
+                BigDecimal.valueOf(1_000_000),
+                12,
+                "In Revision",
+                "Personal"
+        );
+
+        Mockito.when(applicationUseCase.newApplication(Mockito.any()))
+                .thenReturn(Mono.just(app));
+
+        Mockito.when(mapper.toResponse(Mockito.any()))
+                .thenReturn(response);
+
+        webTestClient.post()
+                .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
-    }
-    @Test
-    void testListenGETUseCaseV2() {
-        webTestClient.get()
-                .uri("/api/v2/usecase/path")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
+                .expectBody()
+                .jsonPath("$.identificationNumber").isEqualTo(app.getIdentificationNumber())
+                .jsonPath("$.loanType").isEqualTo("Personal");
     }
 
     @Test
-    void testListenGETOtherUseCaseV1() {
-        webTestClient.get()
-                .uri("/api/v1/otherusercase/path")
+    void tesNewApplicationNoIdentificationNumber() {
+
+        ApplicationRequest request = new ApplicationRequest(
+                null,
+                BigDecimal.valueOf(1_000_000),
+                12,
+                1
+        );
+
+        webTestClient.post()
+                .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
                 .exchange()
-                .expectStatus().isOk()
+                .expectStatus().isBadRequest()
                 .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
-    }
-    @Test
-    void testListenGETOtherUseCaseV2() {
-        webTestClient.get()
-                .uri("/api/v2/otherusercase/path")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
+                .value(body -> assertThat(body).contains("Identification number is required"));
     }
 
     @Test
-    void testListenPOSTUseCaseV1() {
+    void tesNewApplicationNoAmount() {
+
+        ApplicationRequest request = new ApplicationRequest(
+               123,
+                null,
+                12,
+                1
+        );
+
         webTestClient.post()
-                .uri("/api/v1/usecase/otherpath")
+                .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
-                .bodyValue("")
+                .bodyValue(request)
                 .exchange()
-                .expectStatus().isOk()
+                .expectStatus().isBadRequest()
                 .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
+                .value(body -> assertThat(body).contains("amount is required"));
     }
+
     @Test
-    void testListenPOSTUseCaseV2() {
+    void tesNewApplicationNoTerm() {
+
+        ApplicationRequest request = new ApplicationRequest(
+                123,
+                BigDecimal.valueOf(1_000_000),
+                null,
+                1
+        );
+
         webTestClient.post()
-                .uri("/api/v2/usecase/otherpath")
+                .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
-                .bodyValue("")
+                .bodyValue(request)
                 .exchange()
-                .expectStatus().isOk()
+                .expectStatus().isBadRequest()
                 .expectBody(String.class)
-                .value(userResponse -> {
-                            Assertions.assertThat(userResponse).isEmpty();
-                        }
-                );
+                .value(body -> assertThat(body).contains("term is required"));
+    }
+
+    @Test
+    void tesNewApplicationNoLoanType() {
+
+        ApplicationRequest request = new ApplicationRequest(
+                123,
+                BigDecimal.valueOf(1_000_000),
+                12,
+                null
+        );
+
+        webTestClient.post()
+                .uri("/api/v1/solicitud/new")
+                .accept(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("Loan Type is required"));
     }
 }
+
