@@ -19,7 +19,7 @@ public class ApplicationUseCase {
     private final ApplicationRepository applicationRepository;
     private final ApplicationStatusRepository applicationStatusRepository;
 
-    public Mono<Application> newApplication(Application application, String tokenEmail) {
+    public Mono<Application> newApplication(Application application) {
         return Mono.zip(
                         userRepository.findByIdentificationNumber(application.getIdentificationNumber())
                                 .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.USER_NOT_FOUND))),
@@ -32,10 +32,6 @@ public class ApplicationUseCase {
                     var user = tuple.getT1();
                     var loanType = tuple.getT2();
                     var status = tuple.getT3();
-
-                    if (!user.getEmail().equalsIgnoreCase(tokenEmail)) {
-                        return Mono.error(new BusinessException(BusinessErrorMessage.USER_EMAIL_MISMATCH));
-                    }
 
                     application.setEmail(user.getEmail());
                     application.setApplicationStatusId(REVISION_PENDING_LOAN_STATUS);

@@ -10,9 +10,6 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -30,39 +27,23 @@ public class ApplicationHandlerV1 {
 
     public Mono<ServerResponse> newApplication(ServerRequest serverRequest) {
 
-        return ReactiveSecurityContextHolder.getContext()
-            .flatMap(securityContext -> {
-                var authentication = securityContext.getAuthentication();
-                String tokenEmail;
-
-                if (authentication instanceof JwtAuthenticationToken jwtAuth) {
-                    Jwt jwt = jwtAuth.getToken();
-                    tokenEmail = jwt.getSubject();
-                } else {
-                    tokenEmail = null;
-                }
-
-                return serverRequest.bodyToMono(ApplicationRequest.class)
-                    .flatMap(dto -> {
-                        var violations = validator.validate(dto);
-                        if (!violations.isEmpty()) {
-                            String errorMsg = violations.stream()
-                                    .map(ConstraintViolation::getMessage)
-                                    .reduce((a, b) -> a + "; " + b)
-                                    .orElse(Constants.INVALID_REQUEST);
-                            return ServerResponse.badRequest().bodyValue(errorMsg);
-                        }
-
-                        return applicationUseCasenUseCase
-                                .newApplication(mapper.toModel(dto), tokenEmail) // ✅ pass email
-                                .doOnSuccess(saved -> log.info(Constants.APPLICATION_REGISTER_SUCCESS, saved))
-                                .doOnError(e -> log.error(Constants.ERROR_REGISTERING_APPLICATION, e))
-                                .flatMap(saved -> ServerResponse.ok().bodyValue(mapper.toResponse(saved)))
-                                .onErrorResume(BusinessException.class,
-                                        e -> ServerResponse.badRequest().bodyValue(e.getBusinessErrorMessage().toString()))
-                                .onErrorResume(TechnicalException.class,
-                                        e -> ServerResponse.status(500).bodyValue(e.getTechnicalErrorMessage().toString()));
-                    });
-            });
+        return  serverRequest.bodyToMono(ApplicationRequest.class)
+                .flatMap(dto -> {
+                    var violations = validator.validate(dto);
+                    if (!violations.isEmpty()) {
+                        String errorMsg = violations.stream()
+                                .map(ConstraintViolation::getMessage)
+                                .reduce((a, b) -> a + "; " + b)
+                                .orElse(Constants.INVALID_REQUEST);
+                        return ServerResponse.badRequest().bodyValue(errorMsg);
+                    }
+                    return applicationUseCasenUseCase.newApplication(mapper.toModel(dto))
+                            .doOnSuccess(saved -> log.info(Constants.APPLICATION_REGISTER_SUCCESS, saved))
+                            .doOnError(e -> log.error(Constants.ERROR_REGISTERING_APPLICATION, e))
+                            .flatMap(saved -> ServerResponse.ok().bodyValue(mapper.toResponse(saved)))
+                            .onErrorResume(BusinessException.class, e ->ServerResponse.badRequest().bodyValue(e.getBusinessErrorMessage().toString()))
+                            .onErrorResume(TechnicalException.class,
+                                    e -> ServerResponse.status(500).bodyValue(e.getTechnicalErrorMessage().toString()));
+                });
     }
 }
