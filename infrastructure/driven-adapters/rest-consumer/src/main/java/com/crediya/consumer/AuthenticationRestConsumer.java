@@ -9,6 +9,8 @@ import com.crediya.model.user.gateways.UserRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -24,26 +26,29 @@ public class AuthenticationRestConsumer implements UserRepository {
     @Override
     @CircuitBreaker(name = "usuarios/identification-number", fallbackMethod = "fallbackUser")
     public Mono<User> findByIdentificationNumber(Integer identificationNumber) {
-        return client.get()
-                .uri(SEARCH_USER_BY_IDENTIFICATION_NUMBER_URI, identificationNumber)
-                .retrieve()
-                .bodyToMono(User.class)
-                .doOnSubscribe(sub -> log.info(Constants.REQUESTINNG_USER_WITH_ID_NUMBER, identificationNumber))
-                .doOnNext(user -> log.info(Constants.RECEIVED_USER, user))
-                // If not found user (empty publisher), throws BusinessException
-                .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.USER_NOT_FOUND)))
-                // Unexpected null, throws an exception
-                .map(user -> {
-                    if (user == null) {
-                        log.warn(Constants.USER_NOT_FOUND_WITH_ID_NUMBER, identificationNumber);
-                        throw new BusinessException(BusinessErrorMessage.USER_NOT_FOUND);
-                    }
-                    return user;
-                })
-                // If remote call fails, translate to a TechnicalException
-                .onErrorMap(WebClientResponseException.NotFound.class,
-                        ex ->  new TechnicalException(ex, TechnicalErrorMessage.USER_IDENTIFICATION_NUMBER_FIND))
-                .doOnSuccess(user -> log.info(Constants.FINAL_USER_READY, user));
+        return ReactiveSecurityContextHolder.getContext()
+                .map(ctx -> (JwtAuthenticationToken) ctx.getAuthentication())
+                .map(auth -> auth.getToken().getTokenValue())
+                .flatMap(token ->
+                        client.get()
+                                .uri(SEARCH_USER_BY_IDENTIFICATION_NUMBER_URI, identificationNumber)
+                                .headers(headers -> headers.setBearerAuth(token))
+                                .retrieve()
+                                .bodyToMono(User.class)
+                                .doOnSubscribe(sub -> log.info(Constants.REQUESTINNG_USER_WITH_ID_NUMBER, identificationNumber))
+                                .doOnNext(user -> log.info(Constants.RECEIVED_USER, user))
+                                .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.USER_NOT_FOUND)))
+                                .map(user -> {
+                                    if (user == null) {
+                                        log.warn(Constants.USER_NOT_FOUND_WITH_ID_NUMBER, identificationNumber);
+                                        throw new BusinessException(BusinessErrorMessage.USER_NOT_FOUND);
+                                    }
+                                    return user;
+                                })
+                                .onErrorMap(WebClientResponseException.NotFound.class,
+                                        ex -> new TechnicalException(ex, TechnicalErrorMessage.USER_IDENTIFICATION_NUMBER_FIND))
+                                .doOnSuccess(user -> log.info(Constants.FINAL_USER_READY, user))
+                );
     }
 
     public Mono<User> fallbackUser(Integer identificationNumber, Throwable ex) {
