@@ -11,6 +11,11 @@ spring:
       path: "/h2"
   profiles:
     include: null
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret: my-super-secret-key-change-me-123456
 adapters:
   mariadb:
     database: "crediya_applications"
