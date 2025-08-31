@@ -21,26 +21,27 @@ public class ApplicationUseCase {
 
     public Mono<Application> newApplication(Application application) {
         return Mono.zip(
-                userRepository.findByIdentificationNumber(application.getIdentificationNumber())
-                        .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.USER_NOT_FOUND))),
-                loanTypeRepository.findById(application.getLoanTypeId())
-                        .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.INVALID_LOAN_TYPE)))
-        )
-        .flatMap(tuple -> {
-            var user = tuple.getT1();
-            var loanType = tuple.getT2();
-            application.setEmail(user.getEmail());
-            application.setApplicationStatusId(REVISION_PENDING_LOAN_STATUS);
-            return applicationRepository.newApplication(application)
-                .flatMap(saved ->
-                    applicationStatusRepository.findById(REVISION_PENDING_LOAN_STATUS)
-                        .map(status -> {
-                            // Reuse previously fetched objects
-                            saved.setLoanType(loanType);
-                            saved.setApplicationStatus(status);
-                            return saved;
-                        })
-                );
-        });
+                        userRepository.findByIdentificationNumber(application.getIdentificationNumber())
+                                .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.USER_NOT_FOUND))),
+                        loanTypeRepository.findById(application.getLoanTypeId())
+                                .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.INVALID_LOAN_TYPE))),
+                        applicationStatusRepository.findById(REVISION_PENDING_LOAN_STATUS)
+                                .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.APPLICATION_STATUS_NOT_FOUND)))
+                )
+                .flatMap(tuple -> {
+                    var user = tuple.getT1();
+                    var loanType = tuple.getT2();
+                    var status = tuple.getT3();
+
+                    application.setEmail(user.getEmail());
+                    application.setApplicationStatusId(REVISION_PENDING_LOAN_STATUS);
+
+                    return applicationRepository.newApplication(application)
+                            .map(saved -> {
+                                saved.setLoanType(loanType);
+                                saved.setApplicationStatus(status);
+                                return saved;
+                            });
+                });
     }
 }
