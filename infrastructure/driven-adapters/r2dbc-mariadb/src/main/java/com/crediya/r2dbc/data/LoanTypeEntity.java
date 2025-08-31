@@ -10,8 +10,8 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.math.BigDecimal;
 
 @Data
-@Table("application")
-public class ApplicationEntity implements Persistable<Long> {
+@Table("loan_type")
+public class LoanTypeEntity implements Persistable<Long> {
     @Transient
     private boolean isNew = true; // default new
 
@@ -19,23 +19,20 @@ public class ApplicationEntity implements Persistable<Long> {
     @Column("id")
     private Long id;
 
-    @Column("user_identification_number")
-    private Integer identificationNumber;
+    @Column("name")
+    private String name;
 
-    @Column("amount")
-    private BigDecimal amount;
+    @Column("minAmount")
+    private BigDecimal minAmount;
 
-    @Column("term")
-    private Integer term;
+    @Column("maxAmount")
+    private BigDecimal maxAmount;
 
-    @Column("email")
-    private String email;
+    @Column("interestRate")
+    private Float interestRate;
 
-    @Column("id_status")
-    private Integer applicationStatusId;
-
-    @Column("id_loan_type")
-    private Integer loanTypeId;
+    @Column("autoValidation")
+    private Boolean autoValidation;
 
     @Override
     public Long getId() {

@@ -40,7 +40,7 @@ public class ApplicationHandlerV1 {
                     return applicationUseCasenUseCase.newApplication(mapper.toModel(dto))
                             .doOnSuccess(saved -> log.info(Constants.APPLICATION_REGISTER_SUCCESS, saved))
                             .doOnError(e -> log.error(Constants.ERROR_REGISTERING_APPLICATION, e))
-                            .flatMap(saved -> ServerResponse.ok().bodyValue(saved))
+                            .flatMap(saved -> ServerResponse.ok().bodyValue(mapper.toResponse(saved)))
                             .onErrorResume(BusinessException.class, e ->ServerResponse.badRequest().bodyValue(e.getBusinessErrorMessage().toString()))
                             .onErrorResume(TechnicalException.class,
                                     e -> ServerResponse.status(500).bodyValue(e.getTechnicalErrorMessage().toString()));

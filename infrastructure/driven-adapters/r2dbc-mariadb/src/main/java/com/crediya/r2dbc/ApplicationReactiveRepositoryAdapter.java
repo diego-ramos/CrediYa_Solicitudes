@@ -2,10 +2,13 @@ package com.crediya.r2dbc;
 
 import com.crediya.model.application.Application;
 import com.crediya.model.application.gateways.ApplicationRepository;
+import com.crediya.model.exception.TechnicalException;
+import com.crediya.model.exception.message.TechnicalErrorMessage;
 import com.crediya.r2dbc.data.ApplicationEntity;
 import com.crediya.r2dbc.helper.ReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Mono;
 
 @Repository
 public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperations<
@@ -26,4 +29,10 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
         super(repository, mapper, d -> mapper.map(d, Application.class/* change for domain model */));
     }
 
+    @Override
+    public Mono<Application> newApplication(Application application) {
+        return repository.save(toData(application))
+                .map(this::toEntity)
+                .onErrorMap(e -> new TechnicalException(e, TechnicalErrorMessage.APPLICATION_SAVE));
+    }
 }
