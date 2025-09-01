@@ -11,6 +11,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -19,10 +20,12 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt;
 
-@ContextConfiguration(classes = {RouterRest.class, ApplicationHandlerV1.class})
+@ContextConfiguration(classes = {RouterRest.class, ApplicationHandlerV1.class, TestSecurityConfig.class})
 @WebFluxTest
 class RouterRestTest {
+    private static final String CUSTOMER_ROLE = "ROLE_CLIENTE";
 
     @Autowired
     private WebTestClient webTestClient;
@@ -54,13 +57,16 @@ class RouterRestTest {
                 "Personal"
         );
 
-        Mockito.when(applicationUseCase.newApplication(Mockito.any()))
-                .thenReturn(Mono.just(app));
+        Mockito.when(applicationUseCase.newApplication(Mockito.any(),  Mockito.any())).thenReturn(Mono.just(app));
 
         Mockito.when(mapper.toResponse(Mockito.any()))
                 .thenReturn(response);
 
-        webTestClient.post()
+        webTestClient.mutateWith(
+                        mockJwt()
+                                .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
+                )
+                .post()
                 .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -81,7 +87,11 @@ class RouterRestTest {
                 1
         );
 
-        webTestClient.post()
+        webTestClient.mutateWith(
+                        mockJwt()
+                                .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
+                )
+                .post()
                 .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -101,7 +111,11 @@ class RouterRestTest {
                 1
         );
 
-        webTestClient.post()
+        webTestClient.mutateWith(
+                mockJwt()
+                        .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
+                )
+                .post()
                 .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -121,7 +135,11 @@ class RouterRestTest {
                 1
         );
 
-        webTestClient.post()
+        webTestClient.mutateWith(
+                        mockJwt()
+                                .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
+                )
+                .post()
                 .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
@@ -141,7 +159,11 @@ class RouterRestTest {
                 null
         );
 
-        webTestClient.post()
+        webTestClient.mutateWith(
+                        mockJwt()
+                                .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
+                )
+                .post()
                 .uri("/api/v1/solicitud/new")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
