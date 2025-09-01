@@ -1,6 +1,7 @@
 package com.crediya.api;
 
 import com.crediya.api.dto.ApplicationRequest;
+import com.crediya.api.dto.ApplicationResponse;
 import com.crediya.api.mapper.ApplicationMapper;
 import com.crediya.model.exception.BusinessException;
 import com.crediya.model.exception.TechnicalException;
@@ -64,5 +65,16 @@ public class ApplicationHandlerV1 {
                                         e -> ServerResponse.status(500).bodyValue(e.getTechnicalErrorMessage().toString()));
                     });
             });
+    }
+
+    public Mono<ServerResponse> listApplications(ServerRequest serverRequest) {
+        return ServerResponse.ok()
+            .body(
+                applicationUseCasenUseCase.listPendingApplications()
+                        .doOnNext(app -> log.info(Constants.RETURNING_APPLICATION, app.getId()))
+                        .doOnError(e -> log.error(Constants.ERROR_GETTING_APPLICATIONS, e))
+                        .map(mapper::toResponse),
+                ApplicationResponse.class
+            );
     }
 }

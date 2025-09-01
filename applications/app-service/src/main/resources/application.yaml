@@ -66,3 +66,7 @@ resilience4j:
         waitDurationInOpenState: "10s"
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
+logging:
+  level:
+    io.r2dbc.postgresql.client.ReactorNettyClient: ERROR
+    org.springframework.r2dbc.core: ERROR

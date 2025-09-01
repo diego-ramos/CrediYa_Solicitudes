@@ -22,7 +22,7 @@ public class RouterRest {
     @Bean
     @RouterOperations({
             @RouterOperation(
-                    path = "/api/v1/solicitud/new",
+                    path = "/api/v1/solicitud",
                     produces = { MediaType.APPLICATION_JSON_VALUE },
                     method = RequestMethod.POST,
                     beanClass = ApplicationHandlerV1.class,
@@ -41,12 +41,30 @@ public class RouterRest {
                                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                             }
                     )
+            ),
+            @RouterOperation(
+                    path = "/api/v1/solicitud",
+                    produces = { MediaType.APPLICATION_JSON_VALUE },
+                    method = RequestMethod.GET,
+                    beanClass = ApplicationHandlerV1.class,
+                    beanMethod = "listApplications",
+                    operation = @Operation(
+                            operationId = "listApplications",
+                            summary = "List loan applications",
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Return applications list successfully", content = @Content(schema = @Schema(implementation = ApplicationResponse.class))),
+                                    @ApiResponse(responseCode = "400", description = "Error de validación"),
+                                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                            }
+                    )
             )
     })
     public RouterFunction<ServerResponse> routerFunction(ApplicationHandlerV1 applicationHandlerV1) {
         return RouterFunctions
             .route()
-                .path("/api/v1", builder -> builder.POST("/solicitud/new", applicationHandlerV1::newApplication))
+                .path("/api/v1", builder -> builder
+                    .POST("/solicitud", applicationHandlerV1::newApplication)
+                    .GET("/solicitud", applicationHandlerV1::listApplications))
             .build();
         }
 }

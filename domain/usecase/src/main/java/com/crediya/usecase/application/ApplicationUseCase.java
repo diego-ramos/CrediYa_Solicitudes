@@ -2,17 +2,24 @@ package com.crediya.usecase.application;
 
 import com.crediya.model.application.Application;
 import com.crediya.model.application.gateways.ApplicationRepository;
+import com.crediya.model.applicationstatus.ApplicationStatus;
 import com.crediya.model.applicationstatus.gateways.ApplicationStatusRepository;
 import com.crediya.model.exception.BusinessException;
 import com.crediya.model.exception.message.BusinessErrorMessage;
+import com.crediya.model.loantype.LoanType;
 import com.crediya.model.loantype.gateways.LoanTypeRepository;
 import com.crediya.model.user.gateways.UserRepository;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 public class ApplicationUseCase {
     private static final long REVISION_PENDING_LOAN_STATUS = 1L;
+    private static final List<String> PENDING_STATUS_NAMES = List.of("Pendiente de revisión", "Rechazada", "Revision manual");
+
 
     private final UserRepository userRepository;
     private final LoanTypeRepository loanTypeRepository;
@@ -48,4 +55,29 @@ public class ApplicationUseCase {
                             });
                 });
     }
+
+    public Flux<Application> listPendingApplications() {
+        return applicationStatusRepository.findAllByNameIn(PENDING_STATUS_NAMES)
+                .map(ApplicationStatus::getId)        // get the IDs of pending statuses
+                .collectList()
+                .flatMapMany(ids ->
+                        applicationRepository.findAllByApplicationStatusIds(ids)
+                )
+                .flatMap(application -> {
+                    // Fetch ApplicationStatus and LoanType in parallel
+                    Mono<ApplicationStatus> statusMono = applicationStatusRepository
+                            .findById(application.getApplicationStatusId());
+
+                    Mono<LoanType> loanTypeMono = loanTypeRepository
+                            .findById(application.getLoanTypeId());
+
+                    return Mono.zip(statusMono, loanTypeMono)
+                            .map(tuple -> {
+                                application.setApplicationStatus(tuple.getT1());
+                                application.setLoanType(tuple.getT2());
+                                return application;
+                            });
+                });
+    }
+
 }

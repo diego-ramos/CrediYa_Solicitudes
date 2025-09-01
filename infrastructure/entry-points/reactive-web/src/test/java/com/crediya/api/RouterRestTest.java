@@ -4,7 +4,6 @@ import com.crediya.api.dto.ApplicationRequest;
 import com.crediya.api.dto.ApplicationResponse;
 import com.crediya.api.mapper.ApplicationMapper;
 import com.crediya.model.application.Application;
-import com.crediya.model.loantype.LoanType;
 import com.crediya.usecase.application.ApplicationUseCase;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -15,6 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -26,6 +26,7 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 @WebFluxTest
 class RouterRestTest {
     private static final String CUSTOMER_ROLE = "ROLE_CLIENTE";
+    private static final String ADMIN_ROLE = "ROLE_ADMINISTRADOR";
 
     @Autowired
     private WebTestClient webTestClient;
@@ -51,8 +52,10 @@ class RouterRestTest {
 
         ApplicationResponse response = new ApplicationResponse(
                 123,
+                "cust@test.com",
                 BigDecimal.valueOf(1_000_000),
                 12,
+                8.5F,
                 "In Revision",
                 "Personal"
         );
@@ -67,7 +70,7 @@ class RouterRestTest {
                                 .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
                 )
                 .post()
-                .uri("/api/v1/solicitud/new")
+                .uri("/api/v1/solicitud")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -92,7 +95,7 @@ class RouterRestTest {
                                 .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
                 )
                 .post()
-                .uri("/api/v1/solicitud/new")
+                .uri("/api/v1/solicitud")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -116,7 +119,7 @@ class RouterRestTest {
                         .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
                 )
                 .post()
-                .uri("/api/v1/solicitud/new")
+                .uri("/api/v1/solicitud")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -140,7 +143,7 @@ class RouterRestTest {
                                 .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
                 )
                 .post()
-                .uri("/api/v1/solicitud/new")
+                .uri("/api/v1/solicitud")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
@@ -164,13 +167,46 @@ class RouterRestTest {
                                 .authorities(new SimpleGrantedAuthority(CUSTOMER_ROLE))
                 )
                 .post()
-                .uri("/api/v1/solicitud/new")
+                .uri("/api/v1/solicitud")
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(String.class)
                 .value(body -> assertThat(body).contains("Loan Type is required"));
+    }
+
+    @Test
+    void tesListApplications() {
+
+        Application app = new Application();
+        app.setIdentificationNumber(123);
+        app.setLoanTypeId(1L);
+
+        ApplicationResponse response = new ApplicationResponse(
+                123,
+                "cust@test.com",
+                BigDecimal.valueOf(1_000_000),
+                12,
+                8.5F,
+                "In Revision",
+                "Personal"
+        );
+
+        Mockito.when(applicationUseCase.listPendingApplications()).thenReturn(Flux.just(app));
+        Mockito.when(mapper.toResponse(Mockito.any())).thenReturn(response);
+
+        webTestClient.mutateWith(
+                        mockJwt()
+                                .authorities(new SimpleGrantedAuthority(ADMIN_ROLE))
+                )
+                .get()
+                .uri("/api/v1/solicitud")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk();
+//                .expectBody(String.class)
+//                .value(body -> assertThat(body).contains("Loan Type is required"));
     }
 }
 
