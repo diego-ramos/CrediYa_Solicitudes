@@ -30,6 +30,8 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/v*/solicitud/new").hasAnyRole(CUSTOMER_ROLE)
+                        .pathMatchers("/webjars/swagger-ui/*").permitAll()
+                        .pathMatchers("/v3/api-docs/*").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
