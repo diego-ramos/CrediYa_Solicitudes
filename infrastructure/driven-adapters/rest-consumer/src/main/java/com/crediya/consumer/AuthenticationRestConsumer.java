@@ -16,6 +16,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,28 +33,26 @@ public class AuthenticationRestConsumer implements UserRepository {
                 .map(auth -> auth.getToken().getTokenValue())
                 .flatMap(token ->
                         client.get()
-                                .uri(SEARCH_USER_BY_IDENTIFICATION_NUMBER_URI, identificationNumber)
+                                .uri(SEARCH_USER_BY_IDENTIFICATION_NUMBER_URI, Map.of("x", identificationNumber))
                                 .headers(headers -> headers.setBearerAuth(token))
                                 .retrieve()
                                 .bodyToMono(User.class)
                                 .doOnSubscribe(sub -> log.info(Constants.REQUESTINNG_USER_WITH_ID_NUMBER, identificationNumber))
                                 .doOnNext(user -> log.info(Constants.RECEIVED_USER, user))
                                 .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.USER_NOT_FOUND)))
-                                .map(user -> {
-                                    if (user == null) {
-                                        log.warn(Constants.USER_NOT_FOUND_WITH_ID_NUMBER, identificationNumber);
-                                        throw new BusinessException(BusinessErrorMessage.USER_NOT_FOUND);
-                                    }
-                                    return user;
-                                })
-                                .onErrorMap(WebClientResponseException.NotFound.class,
-                                        ex -> new TechnicalException(ex, TechnicalErrorMessage.USER_IDENTIFICATION_NUMBER_FIND))
                                 .doOnSuccess(user -> log.info(Constants.FINAL_USER_READY, user))
                 );
     }
 
     public Mono<User> fallbackUser(Integer identificationNumber, Throwable ex) {
         log.error(Constants.CIRCUIT_BREAKER_OPENED_FOR_ID, identificationNumber, ex.getMessage());
-        return Mono.empty();
+
+        if (ex instanceof WebClientResponseException.NotFound) {
+            // For 404, just return empty
+            return Mono.empty();
+        } else {
+            // For other errors, propagate as TechnicalException
+            return Mono.error(new TechnicalException(ex, TechnicalErrorMessage.USER_IDENTIFICATION_NUMBER_FIND));
+        }
     }
 }

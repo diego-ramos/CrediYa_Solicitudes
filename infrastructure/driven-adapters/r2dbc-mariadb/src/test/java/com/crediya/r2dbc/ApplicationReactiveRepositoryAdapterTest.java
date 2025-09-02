@@ -10,10 +10,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.reactivecommons.utils.ObjectMapper;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 class ApplicationReactiveRepositoryAdapterTest {
@@ -76,5 +81,22 @@ class ApplicationReactiveRepositoryAdapterTest {
                     assert te.getTechnicalErrorMessage() == TechnicalErrorMessage.APPLICATION_SAVE;
                 })
                 .verify();
+    }
+
+    @Test
+    void shouldFindAllByApplicationStatusIds() {
+        // Arrange
+        List<Integer> statusIds =  new ArrayList<>();
+        statusIds.add(1);
+
+        when(repository.findAllByApplicationStatusIds(anyList())).thenReturn(Flux.just(application));
+
+        // Act
+        Flux<Application> result = adapter.findAllByApplicationStatusIds(statusIds);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNext(application)
+                .verifyComplete();
     }
 }

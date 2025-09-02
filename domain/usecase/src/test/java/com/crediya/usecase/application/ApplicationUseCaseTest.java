@@ -13,11 +13,11 @@ import com.crediya.model.user.gateways.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -73,7 +73,7 @@ class ApplicationUseCaseTest {
         when(applicationStatusRepository.findById(1L)).thenReturn(Mono.just(status));
 
         // Act
-        Mono<Application> result = applicationUseCase.newApplication(application);
+        Mono<Application> result = applicationUseCase.newApplication(application, "test@mail.com");
 
         // Assert
         StepVerifier.create(result)
@@ -101,7 +101,7 @@ class ApplicationUseCaseTest {
                 .thenReturn(Mono.just(new ApplicationStatus(1, "Revision Pending", null)));
 
         // Act
-        Mono<Application> result = applicationUseCase.newApplication(application);
+        Mono<Application> result = applicationUseCase.newApplication(application, "test@mail.com");
 
         // Assert
         StepVerifier.create(result)
@@ -109,7 +109,6 @@ class ApplicationUseCaseTest {
                         ((BusinessException) e).getBusinessErrorMessage() == BusinessErrorMessage.USER_NOT_FOUND)
                 .verify();
     }
-
 
     @Test
     void shouldReturnErrorWhenLoanTypeNotFound() {
@@ -127,7 +126,7 @@ class ApplicationUseCaseTest {
                 .thenReturn(Mono.just(new ApplicationStatus(1, "Revision Pending", null)));
 
         // Act
-        Mono<Application> result = applicationUseCase.newApplication(application);
+        Mono<Application> result = applicationUseCase.newApplication(application,"test@mail.com");
 
         // Assert
         StepVerifier.create(result)
@@ -135,5 +134,54 @@ class ApplicationUseCaseTest {
                         ((BusinessException) ex).getBusinessErrorMessage() == BusinessErrorMessage.INVALID_LOAN_TYPE)
                 .verify();
     }
+
+    @Test
+    void shouldListPendingApplications() {
+        // Arrange
+        Application application = new Application();
+        application.setIdentificationNumber(123);
+        application.setLoanTypeId(10L);
+        application.setApplicationStatusId(1L); // make sure this matches the status id
+
+        ApplicationStatus status = new ApplicationStatus();
+        status.setId(1);
+        status.setName("Revision Pending");
+
+        LoanType loanType = new LoanType();
+        loanType.setId(10L);
+        loanType.setName("Personal Loan");
+
+        // Mock repositories
+        when(applicationStatusRepository.findAllByNameIn(anyList()))
+                .thenReturn(Flux.just(status));
+
+        when(applicationRepository.findAllByApplicationStatusIds(anyList()))
+                .thenReturn(Flux.just(application));
+
+        when(applicationStatusRepository.findById(1L))
+                .thenReturn(Mono.just(status));
+
+        when(loanTypeRepository.findById(10L))
+                .thenReturn(Mono.just(loanType));
+
+        // Act
+        Flux<Application> result = applicationUseCase.listPendingApplications();
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNextMatches(app ->
+                        app.getLoanType() != null &&
+                                "Personal Loan".equals(app.getLoanType().getName()) &&
+                                app.getApplicationStatus() != null &&
+                                "Revision Pending".equals(app.getApplicationStatus().getName())
+                )
+                .verifyComplete();
+
+        verify(applicationStatusRepository).findAllByNameIn(anyList());
+        verify(applicationRepository).findAllByApplicationStatusIds(anyList());
+        verify(applicationStatusRepository).findById(1L);
+        verify(loanTypeRepository).findById(10L);
+    }
+
 
 }
