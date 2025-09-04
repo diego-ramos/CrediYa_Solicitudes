@@ -2,11 +2,11 @@ package com.crediya.api.config;
 
 import com.crediya.api.security.CustomAccessDeniedHandler;
 import com.crediya.api.security.CustomAuthenticationEntryPoint;
+import com.crediya.api.security.CustomAuthorizationManager;
 import com.crediya.api.security.CustomJwtAuthenticationConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.AuthenticationException;
@@ -30,16 +30,15 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
                                                          CustomAuthenticationEntryPoint entryPoint,
-                                                         CustomAccessDeniedHandler accessDeniedHandler) {
+                                                         CustomAccessDeniedHandler accessDeniedHandler,
+                                                         CustomAuthorizationManager customAuthorizationManager) {
 
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers(HttpMethod.GET,"/api/v*/solicitud").hasAnyRole(REPRESENTATIVE_ROLE, ADMIN_ROLE)
-                        .pathMatchers(HttpMethod.POST, "/api/v*/solicitud").hasRole(CUSTOMER_ROLE)
                         .pathMatchers("/webjars/swagger-ui/*").permitAll()
                         .pathMatchers("/v3/api-docs/*").permitAll()
-                        .anyExchange().authenticated()
+                        .anyExchange().access(customAuthorizationManager) // dynamic DB permissions
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt

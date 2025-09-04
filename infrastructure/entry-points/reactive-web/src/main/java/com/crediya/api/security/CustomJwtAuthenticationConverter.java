@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class CustomJwtAuthenticationConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
     private final static String ROLE_CLAIM = "roles";
-    private final static String ROLE_PREFIX = "ROLE_";
+    private final static String ROLE_PREFIX = "";
 
     @Override
     public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
