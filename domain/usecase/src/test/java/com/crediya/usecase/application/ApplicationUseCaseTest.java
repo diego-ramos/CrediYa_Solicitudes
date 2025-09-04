@@ -8,15 +8,19 @@ import com.crediya.model.exception.BusinessException;
 import com.crediya.model.exception.message.BusinessErrorMessage;
 import com.crediya.model.loantype.LoanType;
 import com.crediya.model.loantype.gateways.LoanTypeRepository;
+import com.crediya.model.pagination.Page;
+import com.crediya.model.pagination.PageRequest;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -136,7 +140,7 @@ class ApplicationUseCaseTest {
     }
 
     @Test
-    void shouldListPendingApplications() {
+    void shouldListPendingApplicationsWithPagination() {
         // Arrange
         Application application = new Application();
         application.setIdentificationNumber(123);
@@ -151,12 +155,16 @@ class ApplicationUseCaseTest {
         loanType.setId(10L);
         loanType.setName("Personal Loan");
 
-        // Mock repositories
-        when(applicationStatusRepository.findAllByNameIn(anyList()))
-                .thenReturn(Flux.just(status));
+        Page<Application> mockPage = new Page<>(
+                List.of(application),
+                0, // page
+                10, // size
+                1   // total
+        );
 
-        when(applicationRepository.findAllByApplicationStatusIds(anyList()))
-                .thenReturn(Flux.just(application));
+        // Mock repositories
+        when(applicationRepository.findAllByApplicationStatusIds(anyList(), any(PageRequest.class)))
+                .thenReturn(Mono.just(mockPage));
 
         when(applicationStatusRepository.findById(1L))
                 .thenReturn(Mono.just(status));
@@ -165,23 +173,29 @@ class ApplicationUseCaseTest {
                 .thenReturn(Mono.just(loanType));
 
         // Act
-        Flux<Application> result = applicationUseCase.listPendingApplications();
+        Mono<Page<Application>> result = applicationUseCase.listApplications(List.of(1), new PageRequest(0, 10));
 
         // Assert
         StepVerifier.create(result)
-                .expectNextMatches(app ->
-                        app.getLoanType() != null &&
-                                "Personal Loan".equals(app.getLoanType().getName()) &&
-                                app.getApplicationStatus() != null &&
-                                "Revision Pending".equals(app.getApplicationStatus().getName())
-                )
+                .assertNext(page -> {
+                    assertThat(page.content()).hasSize(1);
+                    Application app = page.content().get(0);
+                    assertThat(app.getLoanType()).isNotNull();
+                    assertThat(app.getLoanType().getName()).isEqualTo("Personal Loan");
+                    assertThat(app.getApplicationStatus()).isNotNull();
+                    assertThat(app.getApplicationStatus().getName()).isEqualTo("Revision Pending");
+
+                    assertThat(page.page()).isZero();
+                    assertThat(page.size()).isEqualTo(10);
+                    assertThat(page.total()).isEqualTo(1);
+                })
                 .verifyComplete();
 
-        verify(applicationStatusRepository).findAllByNameIn(anyList());
-        verify(applicationRepository).findAllByApplicationStatusIds(anyList());
+        verify(applicationRepository).findAllByApplicationStatusIds(anyList(), any(PageRequest.class));
         verify(applicationStatusRepository).findById(1L);
         verify(loanTypeRepository).findById(10L);
     }
+
 
 
 }

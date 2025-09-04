@@ -1,12 +1,13 @@
 package com.crediya.model.application.gateways;
 
 import com.crediya.model.application.Application;
-import reactor.core.publisher.Flux;
+import com.crediya.model.pagination.Page;
+import com.crediya.model.pagination.PageRequest;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 public interface ApplicationRepository {
     Mono<Application> newApplication(Application application);
-    Flux<Application> findAllByApplicationStatusIds(List<Integer> statusIds);
+    Mono<Page<Application>> findAllByApplicationStatusIds(List<Integer> statusIds, PageRequest request);
 }

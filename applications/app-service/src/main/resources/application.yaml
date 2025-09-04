@@ -68,5 +68,5 @@ cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
 logging:
   level:
-    io.r2dbc.postgresql.client.ReactorNettyClient: ERROR
-    org.springframework.r2dbc.core: ERROR
+    io.r2dbc.postgresql.client.ReactorNettyClient: DEBUG
+    org.springframework.r2dbc.core: DEBUG

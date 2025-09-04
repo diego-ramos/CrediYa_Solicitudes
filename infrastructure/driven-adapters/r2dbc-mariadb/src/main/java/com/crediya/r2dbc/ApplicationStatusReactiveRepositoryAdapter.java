@@ -8,10 +8,7 @@ import com.crediya.r2dbc.data.ApplicationStatusEntity;
 import com.crediya.r2dbc.helper.ReactiveAdapterOperations;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
 
 @Repository
 public class ApplicationStatusReactiveRepositoryAdapter extends ReactiveAdapterOperations<
@@ -38,10 +35,5 @@ public class ApplicationStatusReactiveRepositoryAdapter extends ReactiveAdapterO
                 .findFirstById(id)
                 .map(this::toEntity)
                 .onErrorMap(e -> new TechnicalException(e, TechnicalErrorMessage.STATUS_ID_FIND));
-    }
-
-    @Override
-    public Flux<ApplicationStatus> findAllByNameIn(List<String> statusNames) {
-        return repository.findAllByNameIn(statusNames);
     }
 }

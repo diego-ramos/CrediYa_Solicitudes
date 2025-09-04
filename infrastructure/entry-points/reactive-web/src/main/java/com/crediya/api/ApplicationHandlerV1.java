@@ -1,10 +1,12 @@
 package com.crediya.api;
 
 import com.crediya.api.dto.ApplicationRequest;
-import com.crediya.api.dto.ApplicationResponse;
+import com.crediya.api.dto.ListApplicationsRequest;
 import com.crediya.api.mapper.ApplicationMapper;
 import com.crediya.model.exception.BusinessException;
 import com.crediya.model.exception.TechnicalException;
+import com.crediya.model.pagination.Page;
+import com.crediya.model.pagination.PageRequest;
 import com.crediya.usecase.application.ApplicationUseCase;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.ConstraintViolation;
@@ -19,13 +21,16 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.List;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
 @Tag(name = "Application", description = "Endpoints related with loan applications")
 public class ApplicationHandlerV1 {
 
-    private final ApplicationUseCase applicationUseCasenUseCase;
+    private final ApplicationUseCase applicationUseCase;
     private final ApplicationMapper mapper;
     private final Validator validator;
 
@@ -54,7 +59,7 @@ public class ApplicationHandlerV1 {
                             return ServerResponse.badRequest().bodyValue(errorMsg);
                         }
 
-                        return applicationUseCasenUseCase
+                        return applicationUseCase
                                 .newApplication(mapper.toModel(dto), tokenEmail) // ✅ pass email
                                 .doOnSuccess(saved -> log.info(Constants.APPLICATION_REGISTER_SUCCESS, saved))
                                 .doOnError(e -> log.error(Constants.ERROR_REGISTERING_APPLICATION, e))
@@ -68,13 +73,49 @@ public class ApplicationHandlerV1 {
     }
 
     public Mono<ServerResponse> listApplications(ServerRequest serverRequest) {
-        return ServerResponse.ok()
-            .body(
-                applicationUseCasenUseCase.listPendingApplications()
-                        .doOnNext(app -> log.info(Constants.RETURNING_APPLICATION, app.getId()))
-                        .doOnError(e -> log.error(Constants.ERROR_GETTING_APPLICATIONS, e))
-                        .map(mapper::toResponse),
-                ApplicationResponse.class
-            );
+        ListApplicationsRequest dto = new ListApplicationsRequest();
+
+        // page param
+        dto.setPage(Integer.parseInt(serverRequest.queryParam("page").orElse("0")));
+
+        // size param
+        dto.setSize(Integer.parseInt(serverRequest.queryParam("size").orElse("10")));
+
+        // statusIds param (comma-separated)
+        dto.setStatusIds(
+                serverRequest.queryParam("statusIds")
+                        .map(ids -> Arrays.stream(ids.split(","))
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .toList()
+                        )
+                        .orElse(List.of())
+        );
+
+        var violations = validator.validate(dto);
+        if (!violations.isEmpty()) {
+            String errorMsg = violations.stream()
+                    .map(ConstraintViolation::getMessage)
+                    .reduce((a, b) -> a + "; " + b)
+                    .orElse(Constants.INVALID_REQUEST);
+            return ServerResponse.badRequest().bodyValue(errorMsg);
+        }
+
+        PageRequest pageRequest = new PageRequest(dto.getPage(), dto.getSize());
+
+        return applicationUseCase.listApplications(dto.getStatusIds(), pageRequest)
+                .doOnNext(p -> log.info(Constants.RETURNING_APPLICATIONS_PAGE, p.page(), p.size(), p.total()))
+                .doOnError(e -> log.error(Constants.ERROR_GETTING_APPLICATIONS, e))
+                .map(appPage -> new Page<>(
+                        appPage.content().stream()
+                                .map(mapper::toResponse)
+                                .toList(),
+                        appPage.page(),
+                        appPage.size(),
+                        appPage.total()
+                ))
+                .flatMap(appPage -> ServerResponse.ok().bodyValue(appPage));
     }
+
 }

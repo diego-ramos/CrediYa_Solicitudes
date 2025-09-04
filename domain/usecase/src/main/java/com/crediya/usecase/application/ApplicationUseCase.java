@@ -8,6 +8,8 @@ import com.crediya.model.exception.BusinessException;
 import com.crediya.model.exception.message.BusinessErrorMessage;
 import com.crediya.model.loantype.LoanType;
 import com.crediya.model.loantype.gateways.LoanTypeRepository;
+import com.crediya.model.pagination.Page;
+import com.crediya.model.pagination.PageRequest;
 import com.crediya.model.user.gateways.UserRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -56,28 +58,33 @@ public class ApplicationUseCase {
                 });
     }
 
-    public Flux<Application> listPendingApplications() {
-        return applicationStatusRepository.findAllByNameIn(PENDING_STATUS_NAMES)
-                .map(ApplicationStatus::getId)        // get the IDs of pending statuses
-                .collectList()
-                .flatMapMany(ids ->
-                        applicationRepository.findAllByApplicationStatusIds(ids)
-                )
-                .flatMap(application -> {
-                    // Fetch ApplicationStatus and LoanType in parallel
-                    Mono<ApplicationStatus> statusMono = applicationStatusRepository
-                            .findById(application.getApplicationStatusId());
+    public Mono<Page<Application>> listApplications(List<Integer> statusIds,PageRequest pageRequest) {
+        return applicationRepository.findAllByApplicationStatusIds(statusIds, pageRequest)
+            .flatMap(page ->
+                    Flux.fromIterable(page.content()) // `content()` since it's a record
+                            .flatMap(application -> {
+                                Mono<ApplicationStatus> statusMono =
+                                        applicationStatusRepository.findById(application.getApplicationStatusId());
 
-                    Mono<LoanType> loanTypeMono = loanTypeRepository
-                            .findById(application.getLoanTypeId());
+                                Mono<LoanType> loanTypeMono =
+                                        loanTypeRepository.findById(application.getLoanTypeId());
 
-                    return Mono.zip(statusMono, loanTypeMono)
-                            .map(tuple -> {
-                                application.setApplicationStatus(tuple.getT1());
-                                application.setLoanType(tuple.getT2());
-                                return application;
-                            });
-                });
+                                return Mono.zip(statusMono, loanTypeMono)
+                                        .map(tuple -> {
+                                            application.setApplicationStatus(tuple.getT1());
+                                            application.setLoanType(tuple.getT2());
+                                            return application;
+                                        });
+                            })
+                            .collectList()
+                            .map(enrichedApplications -> new Page<>(
+                                    enrichedApplications,
+                                    page.page(),   // current page number
+                                    page.size(),   // current page size
+                                    page.total()   // total count
+                            ))
+            );
     }
+
 
 }

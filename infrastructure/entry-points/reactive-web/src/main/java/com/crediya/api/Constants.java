@@ -13,6 +13,7 @@ public final class Constants {
     public static final String GRANTED_AUTHORITY = "Granted authority:";
     public static final String AUTHORIZATION_CHECK = "Authorization check: user={}, path={}, method={}, allowed={}";
     public static final String NO_PERMISSIONS_CLAIM = "No permissions claim in token for user={}";
+    public static final String RETURNING_APPLICATIONS_PAGE = "Returning application: page={}, size={}, total={}";
 
     private Constants() {}
 }
