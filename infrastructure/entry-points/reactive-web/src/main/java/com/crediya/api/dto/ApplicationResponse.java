@@ -11,6 +11,12 @@ public record ApplicationResponse (
     @Schema(description = "User email", example = "darp@test.com")
     String email,
 
+    @Schema(description = "User full name", example = "Diego Ramos")
+    String fullName,
+
+    @Schema(description = "User Base Salary", example = "50000")
+    BigDecimal baseSalary,
+
     @Schema(description = "Loan Amount", example = "10000000")
     BigDecimal amount,
 

@@ -1,7 +1,12 @@
 package com.crediya.model.application;
+
 import com.crediya.model.applicationstatus.ApplicationStatus;
 import com.crediya.model.loantype.LoanType;
-import lombok.*;
+import com.crediya.model.user.User;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
@@ -19,4 +24,5 @@ public class Application {
     private ApplicationStatus applicationStatus;
     private Long loanTypeId;
     private LoanType loanType;
+    private User user;
 }

@@ -10,6 +10,7 @@ import com.crediya.model.loantype.LoanType;
 import com.crediya.model.loantype.gateways.LoanTypeRepository;
 import com.crediya.model.pagination.Page;
 import com.crediya.model.pagination.PageRequest;
+import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -69,10 +70,14 @@ public class ApplicationUseCase {
                                 Mono<LoanType> loanTypeMono =
                                         loanTypeRepository.findById(application.getLoanTypeId());
 
-                                return Mono.zip(statusMono, loanTypeMono)
+                                Mono<User> user =
+                                        userRepository.findByIdentificationNumber(application.getIdentificationNumber());
+
+                                return Mono.zip(statusMono, loanTypeMono, user)
                                         .map(tuple -> {
                                             application.setApplicationStatus(tuple.getT1());
                                             application.setLoanType(tuple.getT2());
+                                            application.setUser(tuple.getT3());
                                             return application;
                                         });
                             })

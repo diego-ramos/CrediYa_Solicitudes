@@ -15,5 +15,7 @@ public interface ApplicationMapper {
     @Mapping(source = "applicationStatus.name", target = "applicationStatus")
     @Mapping(source = "loanType.name", target = "loanType")
     @Mapping(source = "loanType.interestRate", target = "interestRate")
+    @Mapping(target = "fullName", expression = "java(dto.getUser().getFirstNames() + \" \" + dto.getUser().getLastNames())")
+    @Mapping(source = "user.baseSalary", target = "baseSalary")
     ApplicationResponse toResponse(Application dto);
 }

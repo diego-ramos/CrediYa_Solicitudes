@@ -2,14 +2,11 @@ package com.crediya.api.security;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +27,7 @@ class CustomJwtAuthenticationConverterTest {
                 .assertNext(auth -> {
                     assertThat(auth.getAuthorities())
                             .extracting("authority")
-                            .containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+                            .containsExactlyInAnyOrder("USER", "ADMIN");
                     assertThat(auth.getCredentials()).isEqualTo(jwt);
                 })
                 .verifyComplete();

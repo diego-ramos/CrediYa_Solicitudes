@@ -162,6 +162,9 @@ class ApplicationUseCaseTest {
                 1   // total
         );
 
+        User user =  new User();
+        user.setIdentificationNumber(123);
+
         // Mock repositories
         when(applicationRepository.findAllByApplicationStatusIds(anyList(), any(PageRequest.class)))
                 .thenReturn(Mono.just(mockPage));
@@ -171,6 +174,9 @@ class ApplicationUseCaseTest {
 
         when(loanTypeRepository.findById(10L))
                 .thenReturn(Mono.just(loanType));
+
+        when(userRepository.findByIdentificationNumber(123))
+                .thenReturn(Mono.just(user));
 
         // Act
         Mono<Page<Application>> result = applicationUseCase.listApplications(List.of(1), new PageRequest(0, 10));
