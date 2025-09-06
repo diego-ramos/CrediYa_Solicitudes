@@ -18,11 +18,11 @@ spring:
           secret: my-super-secret-key-change-me-123456
 adapters:
   mariadb:
-    database: "crediya_applications"
-    host: "localhost"
-    port: 3306
-    username: "crediya_user"
-    password: "crediya123"
+    database: ${DB_NAME:crediya_applications}
+    host: ${DB_HOST:localhost}
+    port: ${DB_PORT:3306}
+    username: ${DB_USER:crediya_user}
+    password: ${DB_PASSWORD:crediya123}
     pool:
       initial-size: 12
       max-size: 15
