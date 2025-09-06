@@ -5,6 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
 public record ApplicationResponse (
+
+    @Schema(description = "Application Id", example = "1")
+    Integer id,
+
     @Schema(description = "User Identification Number", example = "79948037")
     Integer identificationNumber,
 

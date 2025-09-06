@@ -1,6 +1,7 @@
 package com.crediya.api;
 
 import com.crediya.api.dto.ApplicationRequest;
+import com.crediya.api.dto.ApplicationStatusUpdateRequest;
 import com.crediya.api.dto.ListApplicationsRequest;
 import com.crediya.api.mapper.ApplicationMapper;
 import com.crediya.model.exception.BusinessException;
@@ -116,6 +117,32 @@ public class ApplicationHandlerV1 {
                         appPage.total()
                 ))
                 .flatMap(appPage -> ServerResponse.ok().bodyValue(appPage));
+    }
+
+    public Mono<ServerResponse> updateApplicationStatus(ServerRequest serverRequest) {
+
+        return serverRequest.bodyToMono(ApplicationStatusUpdateRequest.class)
+            .doOnNext(user -> log.info(Constants.APPLICATION_STATUS_UPDATE_REQUEST, user))
+            .flatMap(dto -> {
+                var violations = validator.validate(dto);
+                if (!violations.isEmpty()) {
+                    String errorMsg = violations.stream()
+                            .map(ConstraintViolation::getMessage)
+                            .reduce((a, b) -> a + "; " + b)
+                            .orElse(Constants.INVALID_REQUEST);
+                    return ServerResponse.badRequest().bodyValue(errorMsg);
+                }
+
+                return applicationUseCase
+                        .updateApplicationStatus(dto.id(), dto.applicationNewStatusId())
+                        .doOnSuccess(saved -> log.info(Constants.RETURNING_APPLICATION, saved))
+                        .doOnError(e -> log.error(Constants.ERROR_UPDATING_APPLICATION_STATUS, e))
+                        .flatMap(saved -> ServerResponse.ok().bodyValue(mapper.toResponse(saved)))
+                        .onErrorResume(BusinessException.class,
+                                e -> ServerResponse.badRequest().bodyValue(e.getBusinessErrorMessage().toString()))
+                        .onErrorResume(TechnicalException.class,
+                                e -> ServerResponse.status(500).bodyValue(e.getTechnicalErrorMessage().toString()));
+            });
     }
 
 }

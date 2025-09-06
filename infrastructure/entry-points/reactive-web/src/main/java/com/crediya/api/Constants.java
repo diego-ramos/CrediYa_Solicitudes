@@ -14,6 +14,8 @@ public final class Constants {
     public static final String AUTHORIZATION_CHECK = "Authorization check: user={}, path={}, method={}, allowed={}";
     public static final String NO_PERMISSIONS_CLAIM = "No permissions claim in token for user={}";
     public static final String RETURNING_APPLICATIONS_PAGE = "Returning application: page={}, size={}, total={}";
+    public static final String APPLICATION_STATUS_UPDATE_REQUEST = "Application status update request: {}";
+    public static final String ERROR_UPDATING_APPLICATION_STATUS = "Error while updating application status";
 
     private Constants() {}
 }

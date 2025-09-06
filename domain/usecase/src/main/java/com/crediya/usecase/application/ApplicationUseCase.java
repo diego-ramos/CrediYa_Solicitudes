@@ -91,5 +91,10 @@ public class ApplicationUseCase {
             );
     }
 
+    public Mono<Application> updateApplicationStatus(int applicationId, int newApplicationStatusId) {
+        return Mono.empty();
+    }
+
+
 
 }
