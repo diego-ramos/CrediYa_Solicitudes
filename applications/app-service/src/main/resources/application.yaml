@@ -15,14 +15,14 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          secret: my-super-secret-key-change-me-123456
+          secret: "my-super-secret-key-change-me-123456"
 adapters:
   mariadb:
-    database: ${DB_NAME:crediya_applications}
-    host: ${DB_HOST:localhost}
-    port: ${DB_PORT:3306}
-    username: ${DB_USER:crediya_user}
-    password: ${DB_PASSWORD:crediya123}
+    database: "${DB_NAME:crediya_applications}"
+    host: "${DB_HOST:localhost}"
+    port: "${DB_PORT:3306}"
+    username: "${DB_USER:crediya_user}"
+    password: "${DB_PASSWORD:crediya123}"
     pool:
       initial-size: 12
       max-size: 15
@@ -30,7 +30,12 @@ adapters:
 adapter:
   restconsumer:
     timeout: 5000
-    url: "http://localhost:8080"
+    url: "http://autenticacion:8080"
+  sqs:
+    region: "us-east-2"
+    queueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Application-Update"
+    # Only needed in local/dev
+    endpoint: "http://localhost:4566 # For localstack only"
 management:
   health:
     circuitbreakers:
@@ -68,5 +73,5 @@ cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
 logging:
   level:
-    io.r2dbc.postgresql.client.ReactorNettyClient: DEBUG
-    org.springframework.r2dbc.core: DEBUG
+    io.r2dbc.postgresql.client.ReactorNettyClient: "DEBUG"
+    org.springframework.r2dbc.core: "DEBUG"

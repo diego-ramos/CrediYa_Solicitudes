@@ -11,5 +11,5 @@ public record ApplicationStatusUpdateRequest(
 
     @Schema(description = "Application Status Id", example = "1")
     @NotNull(message = "Application Status Id is required")
-    Integer applicationNewStatusId
+    Long applicationNewStatusId
 ){}

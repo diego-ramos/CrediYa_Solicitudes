@@ -25,7 +25,11 @@ public enum BusinessErrorMessage {
     ),
     USER_EMAIL_MISMATCH(
             "BUSS_ERR_S006", "User cannot request loan applications for other users", VERIFY_YOUR_DATA
-    );
+    ),
+    APPLICATION_NOT_FOUND(
+            "BUSS_ERR_S007", "Application not found", VERIFY_YOUR_DATA
+    )
+    ;
 
     private final String code;
     private final String description;

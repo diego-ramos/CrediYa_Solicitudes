@@ -3,6 +3,7 @@ package com.crediya.api.mapper;
 import com.crediya.api.dto.ApplicationRequest;
 import com.crediya.api.dto.ApplicationResponse;
 import com.crediya.model.application.Application;
+import com.crediya.model.user.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
@@ -15,7 +16,16 @@ public interface ApplicationMapper {
     @Mapping(source = "applicationStatus.name", target = "applicationStatus")
     @Mapping(source = "loanType.name", target = "loanType")
     @Mapping(source = "loanType.interestRate", target = "interestRate")
-    @Mapping(target = "fullName", expression = "java(dto.getUser().getFirstNames() + \" \" + dto.getUser().getLastNames())")
+    @Mapping(target = "fullName", expression = "java(mapFullName(dto.getUser()))")
     @Mapping(source = "user.baseSalary", target = "baseSalary")
     ApplicationResponse toResponse(Application dto);
+
+    default String mapFullName(User user) {
+        if (user == null) {
+            return null;
+        }
+        String first = user.getFirstNames() == null ? "" : user.getFirstNames();
+        String last = user.getLastNames() == null ? "" : user.getLastNames();
+        return (first + " " + last).trim();
+    }
 }

@@ -26,6 +26,9 @@ public enum TechnicalErrorMessage {
     ),
     STATUS_ID_FIND(
             "SOL_ERR_006", "Error finding loan status by id", A_SYSTEM_FAILURE_OCCURRED
+    ),
+    APPLICATION_FIND_BY_ID(
+            "SOL_ERR_006", "Error finding application by id", A_SYSTEM_FAILURE_OCCURRED
     );
 
     private final String code;

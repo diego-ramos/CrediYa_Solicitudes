@@ -61,4 +61,19 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
                 });
     }
 
+    @Override
+    public Mono<Application> updateApplication(Application application) {
+        return repository.save(toData(application))
+            .map(this::toEntity)
+            .onErrorMap(e -> new TechnicalException(e, TechnicalErrorMessage.APPLICATION_SAVE));
+    }
+
+    @Override
+    public Mono<Application> findById(Integer applicationId) {
+        return repository.findById(applicationId)
+            .map(this::toEntity)
+            .onErrorMap(e -> new TechnicalException(e, TechnicalErrorMessage.APPLICATION_FIND_BY_ID));
+
+    }
+
 }

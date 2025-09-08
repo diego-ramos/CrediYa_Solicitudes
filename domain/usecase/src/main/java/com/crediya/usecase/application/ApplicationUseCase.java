@@ -10,24 +10,27 @@ import com.crediya.model.loantype.LoanType;
 import com.crediya.model.loantype.gateways.LoanTypeRepository;
 import com.crediya.model.pagination.Page;
 import com.crediya.model.pagination.PageRequest;
+import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
+import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import java.util.List;
 
 @RequiredArgsConstructor
 public class ApplicationUseCase {
     private static final long REVISION_PENDING_LOAN_STATUS = 1L;
-    private static final List<String> PENDING_STATUS_NAMES = List.of("Pendiente de revisión", "Rechazada", "Revision manual");
 
 
     private final UserRepository userRepository;
     private final LoanTypeRepository loanTypeRepository;
     private final ApplicationRepository applicationRepository;
     private final ApplicationStatusRepository applicationStatusRepository;
+    private final SqsMessagePublisher sqsMessagePublisher;
 
     public Mono<Application> newApplication(Application application, String tokenEmail) {
         return Mono.zip(
@@ -91,10 +94,56 @@ public class ApplicationUseCase {
             );
     }
 
-    public Mono<Application> updateApplicationStatus(int applicationId, int newApplicationStatusId) {
-        return Mono.empty();
+    public Mono<Application> updateApplicationStatus(int applicationId, long newApplicationStatusId) {
+        return Mono.zip(
+                        applicationRepository.findById(applicationId)
+                                .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.APPLICATION_NOT_FOUND))),
+                        applicationStatusRepository.findById(newApplicationStatusId)
+                                .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.APPLICATION_STATUS_NOT_FOUND)))
+                )
+                .flatMap(tuple -> {
+                    var application = tuple.getT1();
+                    var newStatus = tuple.getT2();
+
+                    application.setApplicationStatus(newStatus);
+                    application.setApplicationStatusId(newApplicationStatusId);
+
+                    // Return both saved application and status together
+                    return applicationRepository.updateApplication(application)
+                            .map(saved -> Tuples.of(saved, newStatus));
+                })
+                .flatMap(tuple -> {
+                    Application saved = tuple.getT1();
+                    ApplicationStatus status = tuple.getT2();
+
+                    Mono<User> userMono =
+                            userRepository.findByIdentificationNumber(saved.getIdentificationNumber());
+
+                    Mono<LoanType> loanTypeMono =
+                            loanTypeRepository.findById(saved.getLoanTypeId());
+
+                    return Mono.zip(userMono, loanTypeMono)
+                            .map(tuple2 -> {
+                                saved.setUser(tuple2.getT1());
+                                saved.setLoanType(tuple2.getT2());
+                                saved.setApplicationStatus(status); // reuse existing status
+                                return saved;
+                            });
+                })
+                .flatMap(enriched -> {
+                    SqsApplicationUpdateMessage message = SqsApplicationUpdateMessage.builder()
+                            .applicationId(enriched.getId())
+                            .email(enriched.getUser() != null ? enriched.getUser().getEmail() : null)
+                            .newApplicationStatus(enriched.getApplicationStatus() != null ? enriched.getApplicationStatus().getName(): null)
+                            .build();
+
+                    return sqsMessagePublisher.send(message)
+                            .onErrorResume(e -> {
+                                System.out.println("Send Message failed: " + e.getMessage());
+                                return Mono.empty(); // ignore errors
+                            })
+                            .thenReturn(enriched);
+                });
     }
-
-
 
 }
