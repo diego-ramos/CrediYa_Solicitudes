@@ -2,6 +2,7 @@ package com.crediya.api;
 
 import com.crediya.api.dto.ApplicationRequest;
 import com.crediya.api.dto.ApplicationResponse;
+import com.crediya.api.dto.ApplicationStatusUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -73,6 +74,11 @@ public class RouterRest {
                     operation = @Operation(
                             operationId = "updateApplicationStatus",
                             summary = "Updates application status",
+                            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                                    required = true,
+                                    description = "Datos de la solicitud de préstamo a actualizar",
+                                    content = @Content(schema = @Schema(implementation = ApplicationStatusUpdateRequest.class))
+                            ),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Return application updated", content = @Content(schema = @Schema(implementation = ApplicationResponse.class))),
                                     @ApiResponse(responseCode = "400", description = "Error de validación"),
