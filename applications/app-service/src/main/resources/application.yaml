@@ -33,7 +33,8 @@ adapter:
     url: "http://autenticacion:8080"
   sqs:
     region: "us-east-2"
-    queueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Application-Update"
+    applicationUpdateQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Application-Update"
+    debtCapacityQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Debt-Capacity"
     # Only needed in local/dev
     endpoint: "http://localhost:4566 # For localstack only"
 management:
@@ -73,5 +74,8 @@ cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
 logging:
   level:
-    io.r2dbc.postgresql.client.ReactorNettyClient: "DEBUG"
     org.springframework.r2dbc.core: "DEBUG"
+    org.springframework.data.r2dbc: DEBUG
+    io.r2dbc.spi: DEBUG
+    dev.miku.r2dbc.mysql: DEBUG   # if you use r2dbc-mysql driver (by miku)
+    io.asyncer.r2dbc.mysql: DEBUG # if you use asyncer fork

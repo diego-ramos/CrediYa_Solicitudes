@@ -11,6 +11,7 @@ import com.crediya.model.loantype.gateways.LoanTypeRepository;
 import com.crediya.model.pagination.Page;
 import com.crediya.model.pagination.PageRequest;
 import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
+import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
@@ -30,7 +31,8 @@ public class ApplicationUseCase {
     private final LoanTypeRepository loanTypeRepository;
     private final ApplicationRepository applicationRepository;
     private final ApplicationStatusRepository applicationStatusRepository;
-    private final SqsMessagePublisher sqsMessagePublisher;
+    private final SqsMessagePublisher<SqsApplicationUpdateMessage> sqsApplicationUpdateMessagePublisher;
+    private final SqsMessagePublisher<SqsCheckDebtCapacityMessage> sqsCheckDebtCapacityMessagePublisher;
 
     public Mono<Application> newApplication(Application application, String tokenEmail) {
         return Mono.zip(
@@ -57,13 +59,27 @@ public class ApplicationUseCase {
                             .map(saved -> {
                                 saved.setLoanType(loanType);
                                 saved.setApplicationStatus(status);
+                                saved.setUser(user);
                                 return saved;
                             });
+                })
+                .flatMap(saved -> {
+                    // 🔎 Check the loanType attribute here
+                    if (Boolean.TRUE.equals(saved.getLoanType().getAutoValidation())) {
+                        // If true → call AWS SQS (assuming sqsService.send returns Mono<Void>)
+                        SqsCheckDebtCapacityMessage message = new SqsCheckDebtCapacityMessage();
+                        message.setApplication(saved);
+                        return sqsCheckDebtCapacityMessagePublisher.send(message)
+                                .thenReturn(saved); // return the application after SQS send
+                    }
+                    // If false → just continue without SQS
+
+                    return Mono.just(saved);
                 });
     }
 
-    public Mono<Page<Application>> listApplications(List<Integer> statusIds,PageRequest pageRequest) {
-        return applicationRepository.findAllByApplicationStatusIds(statusIds, pageRequest)
+    public Mono<Page<Application>> listApplications(List<Integer> statusIds,int userIdNumber, PageRequest pageRequest) {
+        return applicationRepository.findAllByApplicationStatusIds(statusIds, userIdNumber, pageRequest)
             .flatMap(page ->
                     Flux.fromIterable(page.content()) // `content()` since it's a record
                             .flatMap(application -> {
@@ -137,9 +153,8 @@ public class ApplicationUseCase {
                             .newApplicationStatus(enriched.getApplicationStatus() != null ? enriched.getApplicationStatus().getName(): null)
                             .build();
 
-                    return sqsMessagePublisher.send(message)
+                    return sqsApplicationUpdateMessagePublisher.send(message)
                             .onErrorResume(e -> {
-                                System.out.println("Send Message failed: " + e.getMessage());
                                 return Mono.empty(); // ignore errors
                             })
                             .thenReturn(enriched);

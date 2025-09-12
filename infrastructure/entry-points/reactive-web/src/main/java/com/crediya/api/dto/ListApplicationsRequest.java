@@ -17,4 +17,8 @@ public class ListApplicationsRequest {
 
     @NotEmpty(message = "statusIds is required")
     private List<Integer> statusIds;
+
+    int userIdNumber;
+
+    private Boolean findAll;
 }

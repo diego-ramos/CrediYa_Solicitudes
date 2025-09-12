@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface ApplicationRepository {
     Mono<Application> newApplication(Application application);
-    Mono<Page<Application>> findAllByApplicationStatusIds(List<Integer> statusIds, PageRequest request);
+    Mono<Page<Application>> findAllByApplicationStatusIds(List<Integer> statusIds, int userIdNumber, PageRequest request);
     Mono<Application> updateApplication(Application application);
     Mono<Application> findById(Integer applicationId);
 }

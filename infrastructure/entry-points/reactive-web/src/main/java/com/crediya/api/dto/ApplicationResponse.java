@@ -32,9 +32,9 @@ public record ApplicationResponse (
 
 
     @Schema(description = "Application Status", example = "Approved")
-    String applicationStatus,
+    String applicationStatusName,
 
     @Schema(description = "Loan Type", example = "Personal")
-    String loanType
+    String loanTypeName
 
 ){}

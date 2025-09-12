@@ -94,7 +94,16 @@ public class ApplicationHandlerV1 {
                         .orElse(List.of())
         );
 
-        var violations = validator.validate(dto);
+        // size param
+        dto.setUserIdNumber(Integer.parseInt(serverRequest.queryParam("userIdNumber").orElse("0")));
+
+        // Find All, if set to true, it will ignore pagination
+        dto.setFindAll(
+                serverRequest.queryParam("findAll")
+                        .map(Boolean::parseBoolean)
+                        .orElse(Boolean.FALSE));
+
+                var violations = validator.validate(dto);
         if (!violations.isEmpty()) {
             String errorMsg = violations.stream()
                     .map(ConstraintViolation::getMessage)
@@ -103,9 +112,12 @@ public class ApplicationHandlerV1 {
             return ServerResponse.badRequest().bodyValue(errorMsg);
         }
 
-        PageRequest pageRequest = new PageRequest(dto.getPage(), dto.getSize());
-
-        return applicationUseCase.listApplications(dto.getStatusIds(), pageRequest)
+        PageRequest pageRequest = null;
+        if(Boolean.FALSE.equals(dto.getFindAll()))
+        {
+            pageRequest = new PageRequest(dto.getPage(), dto.getSize());
+        }
+        return applicationUseCase.listApplications(dto.getStatusIds(), dto.getUserIdNumber(), pageRequest)
                 .doOnNext(p -> log.info(Constants.RETURNING_APPLICATIONS_PAGE, p.page(), p.size(), p.total()))
                 .doOnError(e -> log.error(Constants.ERROR_GETTING_APPLICATIONS, e))
                 .map(appPage -> new Page<>(

@@ -43,15 +43,45 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
     }
 
     @Override
-    public Mono<Page<Application>> findAllByApplicationStatusIds(List<Integer> statusIds, PageRequest pageRequest) {
-
+    public Mono<Page<Application>> findAllByApplicationStatusIds(List<Integer> statusIds, int userIdNumber, PageRequest pageRequest) {
         Criteria criteria = Criteria.where("id_status").in(statusIds);
+
+        if(userIdNumber > 0) {
+            criteria = criteria.and("user_identification_number").is(userIdNumber);
+        }
+
+        if (pageRequest == null) {
+            if (userIdNumber > 0) {
+                return repository.findAllByApplicationStatusIdIsInAndIdentificationNumber(statusIds, userIdNumber)
+                        .map(this::toEntity)
+                        .collectList()
+                        .map(applications -> new Page<>(
+                                applications,
+                                0,                        // page index = 0
+                                applications.size(),      // size = total size
+                                applications.size()       // total = same as size
+                        ));
+            }
+            else {
+                return repository.findAllByApplicationStatusIdIn(statusIds)
+                        .map(this::toEntity)
+                        .collectList()
+                        .map(applications -> new Page<>(
+                                applications,
+                                0,                        // page index = 0
+                                applications.size(),      // size = total size
+                                applications.size()       // total = same as size
+                        ));
+            }
+        }
+
         return paginator.paginate(criteria, ApplicationEntity.class, pageRequest)
                 .map(pageEntity -> {
                     List<Application> content = pageEntity.content()
                             .stream()
-                            .map(this::toEntity) // tu mapper: ApplicationEntity -> Application
+                            .map(this::toEntity) // mapper
                             .toList();
+
                     return new Page<>(
                             content,
                             pageEntity.page(),
@@ -60,6 +90,7 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
                     );
                 });
     }
+
 
     @Override
     public Mono<Application> updateApplication(Application application) {

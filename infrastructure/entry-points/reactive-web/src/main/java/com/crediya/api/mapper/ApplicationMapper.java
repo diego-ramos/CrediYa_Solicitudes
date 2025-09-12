@@ -13,8 +13,8 @@ public interface ApplicationMapper {
 
     Application toModel(ApplicationRequest dto);
 
-    @Mapping(source = "applicationStatus.name", target = "applicationStatus")
-    @Mapping(source = "loanType.name", target = "loanType")
+    @Mapping(source = "applicationStatus.name", target = "applicationStatusName")
+    @Mapping(source = "loanType.name", target = "loanTypeName")
     @Mapping(source = "loanType.interestRate", target = "interestRate")
     @Mapping(target = "fullName", expression = "java(mapFullName(dto.getUser()))")
     @Mapping(source = "user.baseSalary", target = "baseSalary")

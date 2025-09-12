@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class SQSSender implements SqsMessagePublisher {
+public class SqsApplicationUpdateSender implements SqsMessagePublisher<SqsApplicationUpdateMessage> {
     private final SQSSenderProperties properties;
     private final SqsAsyncClient client;
     private final ObjectMapper objectMapper;
@@ -30,7 +30,7 @@ public class SQSSender implements SqsMessagePublisher {
 
     private SendMessageRequest buildRequest(SqsApplicationUpdateMessage message) throws JsonProcessingException {
         return SendMessageRequest.builder()
-                .queueUrl(properties.queueUrl())
+                .queueUrl(properties.applicationUpdateQueueUrl())
                 .messageBody(objectMapper.writeValueAsString(message))
                 .build();
     }
