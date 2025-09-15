@@ -32,11 +32,4 @@ public class SQSSenderConfig {
                 .addCredentialsProvider(InstanceProfileCredentialsProvider.create())
                 .build();
     }
-
-//    private URI resolveEndpoint(SQSSenderProperties properties) {
-//        if (properties.endpoint() != null) {
-//            return URI.create(properties.endpoint());
-//        }
-//        return null;
-//    }
 }
