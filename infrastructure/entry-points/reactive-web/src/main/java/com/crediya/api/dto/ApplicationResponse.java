@@ -30,7 +30,6 @@ public record ApplicationResponse (
     @Schema(description = "Interest rate", example = "9.5")
     Float interestRate,
 
-
     @Schema(description = "Application Status", example = "Approved")
     String applicationStatusName,
 

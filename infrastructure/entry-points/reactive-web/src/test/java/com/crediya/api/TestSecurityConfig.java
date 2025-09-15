@@ -20,7 +20,8 @@ public class TestSecurityConfig {
         http
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.GET,"/api/v*/solicitud").hasAnyRole(REPRESENTATIVE_ROLE, ADMIN_ROLE)
-                        .pathMatchers(HttpMethod.POST, "/api/v*/solicitud").hasRole(CUSTOMER_ROLE) // ✅ role-based restriction
+                        .pathMatchers(HttpMethod.POST, "/api/v*/solicitud").hasRole(CUSTOMER_ROLE) // ✅ role-based restrictio
+                        .pathMatchers(HttpMethod.PUT, "/api/v*/solicitud").hasRole(REPRESENTATIVE_ROLE) // ✅ role-based restriction
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable);
         return http.build();
