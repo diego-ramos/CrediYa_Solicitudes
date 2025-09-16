@@ -1,6 +1,7 @@
 package com.crediya.usecase.application;
 
 import com.crediya.model.application.Application;
+import com.crediya.model.application.FirstInstallment;
 import com.crediya.model.application.gateways.ApplicationRepository;
 import com.crediya.model.applicationstatus.ApplicationStatus;
 import com.crediya.model.applicationstatus.gateways.ApplicationStatusRepository;
@@ -20,11 +21,16 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
 public class ApplicationUseCase {
     private static final long REVISION_PENDING_LOAN_STATUS = 1L;
+    private static final int APPROVED_LOAN_STATUS = 3;
 
 
     private final UserRepository userRepository;
@@ -147,18 +153,77 @@ public class ApplicationUseCase {
                             });
                 })
                 .flatMap(enriched -> {
-                    SqsApplicationUpdateMessage message = SqsApplicationUpdateMessage.builder()
-                            .applicationId(enriched.getId())
-                            .email(enriched.getUser() != null ? enriched.getUser().getEmail() : null)
-                            .newApplicationStatus(enriched.getApplicationStatus() != null ? enriched.getApplicationStatus().getName(): null)
-                            .build();
+                    SqsApplicationUpdateMessage.SqsApplicationUpdateMessageBuilder messageBuilder =
+                            SqsApplicationUpdateMessage.builder()
+                                    .applicationId(enriched.getId())
+                                    .email(enriched.getUser() != null ? enriched.getUser().getEmail() : null)
+                                    .newApplicationStatus(enriched.getApplicationStatus() != null
+                                            ? enriched.getApplicationStatus().getName()
+                                            : null);
 
-                    return sqsApplicationUpdateMessagePublisher.send(message)
-                            .onErrorResume(e -> {
-                                return Mono.empty(); // ignore errors
-                            })
-                            .thenReturn(enriched);
+                    return applicationRepository.findAllByApplicationStatusIds(
+                                    List.of(APPROVED_LOAN_STATUS),
+                                    enriched.getUser().getIdentificationNumber(),
+                                    null
+                            )
+                            .flatMapMany(page -> Flux.fromIterable(page.content()))
+                            .flatMap(app ->
+                                    loanTypeRepository.findById(app.getLoanTypeId())
+                                            .map(loanType -> {
+                                                app.setLoanType(loanType);
+                                                return calculateFirstInstallment(app);
+                                            })
+                            )
+                            .collectList()
+                            .defaultIfEmpty(List.of())
+                            .flatMap(otherInstallments ->
+                                    loanTypeRepository.findById(enriched.getLoanTypeId())
+                                            .map(loanType -> {
+                                                enriched.setLoanType(loanType);
+
+                                                List<FirstInstallment> installments = new ArrayList<>();
+                                                // If you want enriched always included:
+                                                // installments.add(calculateFirstInstallment(enriched));
+                                                installments.addAll(otherInstallments);
+
+                                                return messageBuilder.installments(installments).build();
+                                            })
+                            )
+                            .flatMap(message ->
+                                    sqsApplicationUpdateMessagePublisher.send(message)
+                                            .onErrorResume(e -> Mono.empty())
+                                            .thenReturn(enriched)
+                            );
                 });
+
+    }
+
+    private FirstInstallment calculateFirstInstallment(Application application) {
+        BigDecimal P = application.getAmount(); // Capital
+        BigDecimal annualRate = BigDecimal.valueOf(application.getLoanType().getInterestRate());
+        int n = application.getTerm(); // número de meses
+
+        // i = tasa mensual en decimal
+        BigDecimal monthlyRate = annualRate
+                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP) // pasar % a decimal
+                .divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP); // mensual
+
+        BigDecimal onePlusRatePow = (BigDecimal.ONE.add(monthlyRate)).pow(n, MathContext.DECIMAL64);
+
+        // fórmula de amortización: C = P * [ i * (1+i)^n ] / [ (1+i)^n - 1 ]
+        BigDecimal numerator = P.multiply(monthlyRate).multiply(onePlusRatePow);
+        BigDecimal denominator = onePlusRatePow.subtract(BigDecimal.ONE);
+
+        BigDecimal monthlyPayment = numerator.divide(denominator, 10, RoundingMode.HALF_UP)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        // intereses primera cuota
+        BigDecimal interest = P.multiply(monthlyRate).setScale(2, RoundingMode.HALF_UP);
+
+        // abono a capital
+        BigDecimal principal = monthlyPayment.subtract(interest).setScale(2, RoundingMode.HALF_UP);
+
+        return new FirstInstallment(application.getId(), monthlyPayment, interest, principal);
     }
 
 }

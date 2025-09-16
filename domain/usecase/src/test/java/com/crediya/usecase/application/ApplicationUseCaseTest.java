@@ -228,6 +228,7 @@ class ApplicationUseCaseTest {
 
         User user = new User();
         user.setEmail("user@test.com");
+        user.setIdentificationNumber(456);
 
         when(applicationRepository.findById(1))
                 .thenReturn(Mono.just(application));
@@ -240,6 +241,9 @@ class ApplicationUseCaseTest {
         when(loanTypeRepository.findById(10L))
                 .thenReturn(Mono.just(loanType));
         when(sqsApplicationUpdateMessagePublisher.send(any(SqsApplicationUpdateMessage.class)))
+                .thenReturn(Mono.empty());
+
+        when(applicationRepository.findAllByApplicationStatusIds(anyList(), anyInt(), any()))
                 .thenReturn(Mono.empty());
 
         // Act
