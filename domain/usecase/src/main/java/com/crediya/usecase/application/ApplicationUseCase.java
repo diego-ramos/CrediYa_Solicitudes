@@ -13,6 +13,7 @@ import com.crediya.model.pagination.Page;
 import com.crediya.model.pagination.PageRequest;
 import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
 import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
+import com.crediya.model.sqsmessage.SqsTotalsMessage;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
@@ -31,6 +32,7 @@ import java.util.List;
 public class ApplicationUseCase {
     private static final long REVISION_PENDING_LOAN_STATUS = 1L;
     private static final int APPROVED_LOAN_STATUS = 3;
+    private static final String APPROVED_APPLICATION_KEY = "approved_applications";
 
 
     private final UserRepository userRepository;
@@ -39,6 +41,7 @@ public class ApplicationUseCase {
     private final ApplicationStatusRepository applicationStatusRepository;
     private final SqsMessagePublisher<SqsApplicationUpdateMessage> sqsApplicationUpdateMessagePublisher;
     private final SqsMessagePublisher<SqsCheckDebtCapacityMessage> sqsCheckDebtCapacityMessagePublisher;
+    private final SqsMessagePublisher<SqsTotalsMessage> sqsTotalsMessagePublisher;
 
     public Mono<Application> newApplication(Application application, String tokenEmail) {
         return Mono.zip(
@@ -153,6 +156,18 @@ public class ApplicationUseCase {
                             });
                 })
                 .flatMap(enriched -> {
+                    if (enriched.getApplicationStatus().getId().equals(APPROVED_LOAN_STATUS)) {
+                        // If true → call AWS SQS (assuming sqsService.send returns Mono<Void>)
+                        SqsTotalsMessage message = new SqsTotalsMessage();
+                        message.setTotalKey(APPROVED_APPLICATION_KEY);
+                        message.setTotalValue(String.valueOf(1));
+                        return sqsTotalsMessagePublisher.send(message)
+                                .thenReturn(enriched);
+                    }
+                    // If false → just continue without SQS
+                    return Mono.just(enriched);
+                })
+                .flatMap(enriched -> {
                     SqsApplicationUpdateMessage.SqsApplicationUpdateMessageBuilder messageBuilder =
                             SqsApplicationUpdateMessage.builder()
                                     .applicationId(enriched.getId())
@@ -183,7 +198,6 @@ public class ApplicationUseCase {
 
                                                 List<FirstInstallment> installments = new ArrayList<>();
                                                 // If you want enriched always included:
-                                                // installments.add(calculateFirstInstallment(enriched));
                                                 installments.addAll(otherInstallments);
 
                                                 return messageBuilder.installments(installments).build();
@@ -199,7 +213,7 @@ public class ApplicationUseCase {
     }
 
     private FirstInstallment calculateFirstInstallment(Application application) {
-        BigDecimal P = application.getAmount(); // Capital
+        BigDecimal amount = application.getAmount(); // Capital
         BigDecimal annualRate = BigDecimal.valueOf(application.getLoanType().getInterestRate());
         int n = application.getTerm(); // número de meses
 
@@ -211,14 +225,14 @@ public class ApplicationUseCase {
         BigDecimal onePlusRatePow = (BigDecimal.ONE.add(monthlyRate)).pow(n, MathContext.DECIMAL64);
 
         // fórmula de amortización: C = P * [ i * (1+i)^n ] / [ (1+i)^n - 1 ]
-        BigDecimal numerator = P.multiply(monthlyRate).multiply(onePlusRatePow);
+        BigDecimal numerator = amount.multiply(monthlyRate).multiply(onePlusRatePow);
         BigDecimal denominator = onePlusRatePow.subtract(BigDecimal.ONE);
 
         BigDecimal monthlyPayment = numerator.divide(denominator, 10, RoundingMode.HALF_UP)
                 .setScale(2, RoundingMode.HALF_UP);
 
         // intereses primera cuota
-        BigDecimal interest = P.multiply(monthlyRate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal interest = amount.multiply(monthlyRate).setScale(2, RoundingMode.HALF_UP);
 
         // abono a capital
         BigDecimal principal = monthlyPayment.subtract(interest).setScale(2, RoundingMode.HALF_UP);

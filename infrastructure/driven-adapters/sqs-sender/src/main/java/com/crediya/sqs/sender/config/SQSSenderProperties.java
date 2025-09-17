@@ -6,5 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record SQSSenderProperties(
      String region,
      String applicationUpdateQueueUrl,
-     String debtCapacityQueueUrl
+     String debtCapacityQueueUrl,
+     String totalsQueueUrl
 ){}

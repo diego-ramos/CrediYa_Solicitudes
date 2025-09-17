@@ -12,6 +12,7 @@ import com.crediya.model.pagination.Page;
 import com.crediya.model.pagination.PageRequest;
 import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
 import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
+import com.crediya.model.sqsmessage.SqsTotalsMessage;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
@@ -36,6 +37,7 @@ class ApplicationUseCaseTest {
     private ApplicationUseCase applicationUseCase;
     private SqsMessagePublisher<SqsApplicationUpdateMessage> sqsApplicationUpdateMessagePublisher;
     private SqsMessagePublisher<SqsCheckDebtCapacityMessage> sqsCheckDebtCapacityMessagePublisher;
+    private SqsMessagePublisher<SqsTotalsMessage> sqsTotalsMessagePublisher;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -53,7 +55,8 @@ class ApplicationUseCaseTest {
                 applicationRepository,
                 applicationStatusRepository,
                 sqsApplicationUpdateMessagePublisher,
-                sqsCheckDebtCapacityMessagePublisher
+                sqsCheckDebtCapacityMessagePublisher,
+                sqsTotalsMessagePublisher
         );
     }
 

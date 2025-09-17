@@ -35,6 +35,7 @@ adapter:
     region: "us-east-2"
     applicationUpdateQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Application-Update"
     debtCapacityQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Debt-Capacity"
+    totalsQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa_Totals"
     # Only needed in local/dev
     endpoint: "http://localhost:4566 # For localstack only"
 management:
