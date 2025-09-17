@@ -95,5 +95,5 @@ public class RouterRest {
                     .GET("/solicitud", applicationHandlerV1::listApplications)
                     .PUT("/solicitud", applicationHandlerV1::updateApplicationStatus))
             .build();
-        }
+    }
 }
