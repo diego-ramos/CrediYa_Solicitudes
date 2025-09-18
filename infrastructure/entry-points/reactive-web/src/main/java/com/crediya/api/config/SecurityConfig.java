@@ -23,10 +23,6 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.secret}")
     private String jwtSecret;
 
-    private static final String ADMIN_ROLE = "ADMINISTRADOR";
-    private static final String CUSTOMER_ROLE = "CLIENTE";
-    private static final String REPRESENTATIVE_ROLE = "ASESOR";
-
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
                                                          CustomAuthenticationEntryPoint entryPoint,

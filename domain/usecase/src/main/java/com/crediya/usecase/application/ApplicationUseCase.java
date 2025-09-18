@@ -14,6 +14,7 @@ import com.crediya.model.pagination.PageRequest;
 import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
 import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
 import com.crediya.model.sqsmessage.SqsTotalsMessage;
+import com.crediya.model.sqsmessage.Total;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
@@ -32,7 +33,8 @@ import java.util.List;
 public class ApplicationUseCase {
     private static final long REVISION_PENDING_LOAN_STATUS = 1L;
     private static final int APPROVED_LOAN_STATUS = 3;
-    private static final String APPROVED_APPLICATION_KEY = "approved_applications";
+    private static final String APPROVED_APPLICATIONS_KEY = "approved_applications";
+    private static final String APPROVED_APPLICATIONS_AMOUNT_KEY = "approved_applications_amount";
 
 
     private final UserRepository userRepository;
@@ -127,8 +129,8 @@ public class ApplicationUseCase {
                                 .switchIfEmpty(Mono.error(new BusinessException(BusinessErrorMessage.APPLICATION_STATUS_NOT_FOUND)))
                 )
                 .flatMap(tuple -> {
-                    var application = tuple.getT1();
-                    var newStatus = tuple.getT2();
+                    Application application = tuple.getT1();
+                    ApplicationStatus newStatus = tuple.getT2();
 
                     application.setApplicationStatus(newStatus);
                     application.setApplicationStatusId(newApplicationStatusId);
@@ -157,11 +159,17 @@ public class ApplicationUseCase {
                 })
                 .flatMap(enriched -> {
                     if (enriched.getApplicationStatus().getId().equals(APPROVED_LOAN_STATUS)) {
-                        // If true → call AWS SQS (assuming sqsService.send returns Mono<Void>)
-                        SqsTotalsMessage message = new SqsTotalsMessage();
-                        message.setTotalKey(APPROVED_APPLICATION_KEY);
-                        message.setTotalValue(String.valueOf(1));
-                        return sqsTotalsMessagePublisher.send(message)
+                        return Mono.zip(applicationRepository.countByApplicationStatusId(APPROVED_LOAN_STATUS),
+                                applicationRepository.approvedApplicationsTotalAmount())
+                                .map(tuple -> {
+                                    List<Total> totalList = new ArrayList<>();
+
+                                    totalList.add(new Total(APPROVED_APPLICATIONS_KEY, String.valueOf(tuple.getT1())));
+                                    totalList.add(new Total(APPROVED_APPLICATIONS_AMOUNT_KEY, String.valueOf(tuple.getT2())));
+
+                                    return new SqsTotalsMessage(totalList);
+                                })
+                                .flatMap(sqsTotalsMessagePublisher::send) // send returns Mono<Void>
                                 .thenReturn(enriched);
                     }
                     // If false → just continue without SQS

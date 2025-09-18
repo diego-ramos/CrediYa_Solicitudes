@@ -14,6 +14,7 @@ import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -26,6 +27,7 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
 
     implements ApplicationRepository
 {
+    private static final long APPROVED_STATUS_ID = 3L;
     private final Paginator paginator;
 
     public ApplicationReactiveRepositoryAdapter(ApplicationReactiveRepository repository,
@@ -105,6 +107,16 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
             .map(this::toEntity)
             .onErrorMap(e -> new TechnicalException(e, TechnicalErrorMessage.APPLICATION_FIND_BY_ID));
 
+    }
+
+    @Override
+    public Mono<Long> countByApplicationStatusId(long statusId) {
+        return repository.countAllByApplicationStatusId(statusId);
+    }
+
+    @Override
+    public Mono<BigDecimal> approvedApplicationsTotalAmount() {
+        return repository.applicationsTotalAmount(APPROVED_STATUS_ID);
     }
 
 }
