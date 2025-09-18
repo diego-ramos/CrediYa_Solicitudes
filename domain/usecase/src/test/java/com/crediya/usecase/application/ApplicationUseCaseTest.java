@@ -13,6 +13,7 @@ import com.crediya.model.pagination.PageRequest;
 import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
 import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
 import com.crediya.model.sqsmessage.SqsTotalsMessage;
+import com.crediya.model.sqsmessage.Total;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
@@ -48,6 +49,7 @@ class ApplicationUseCaseTest {
         applicationStatusRepository = Mockito.mock(ApplicationStatusRepository.class);
         sqsApplicationUpdateMessagePublisher = Mockito.mock(SqsMessagePublisher.class);
         sqsCheckDebtCapacityMessagePublisher = Mockito.mock(SqsMessagePublisher.class);
+        sqsTotalsMessagePublisher = Mockito.mock(SqsMessagePublisher.class);
 
         applicationUseCase = new ApplicationUseCase(
                 userRepository,
@@ -436,4 +438,75 @@ class ApplicationUseCaseTest {
         verify(applicationRepository).newApplication(any(Application.class));
         verify(sqsCheckDebtCapacityMessagePublisher, never()).send(any());
     }
+
+    @Test
+    void shouldSendTotalsMessageWhenStatusIsApproved() {
+        // Arrange
+        Application application = new Application();
+        application.setId(123L);
+        application.setLoanTypeId(10L);
+        application.setIdentificationNumber(999);
+
+        ApplicationStatus approvedStatus = new ApplicationStatus();
+        approvedStatus.setId(3); // 👈 APPROVED
+        approvedStatus.setName("APPROVED");
+
+        LoanType loanType = new LoanType();
+        loanType.setId(10L);
+
+        User user = new User();
+        user.setIdentificationNumber(999);
+        user.setEmail("approved@test.com");
+
+        when(applicationRepository.findById(123))
+                .thenReturn(Mono.just(application));
+        when(applicationStatusRepository.findById(3L))
+                .thenReturn(Mono.just(approvedStatus));
+        when(applicationRepository.updateApplication(any(Application.class)))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+
+        when(userRepository.findByIdentificationNumber(999))
+                .thenReturn(Mono.just(user));
+        when(loanTypeRepository.findById(10L))
+                .thenReturn(Mono.just(loanType));
+
+        // totals mocks
+        when(applicationRepository.countByApplicationStatusId(3))
+                .thenReturn(Mono.just(5L));
+        when(applicationRepository.approvedApplicationsTotalAmount())
+                .thenReturn(Mono.just(new java.math.BigDecimal("15000")));
+
+        // SQS mocks
+        when(sqsTotalsMessagePublisher.send(any(SqsTotalsMessage.class)))
+                .thenReturn(Mono.empty());
+        when(sqsApplicationUpdateMessagePublisher.send(any(SqsApplicationUpdateMessage.class)))
+                .thenReturn(Mono.empty());
+
+        // also mock downstream findAllByApplicationStatusIds to avoid NPE in later flatMap
+        when(applicationRepository.findAllByApplicationStatusIds(anyList(), anyInt(), any()))
+                .thenReturn(Mono.just(new Page<>(List.of(), 0, 10, 0)));
+
+        // Act
+        Mono<Application> result = applicationUseCase.updateApplicationStatus(123, 3L);
+
+        // Assert
+        StepVerifier.create(result)
+                .assertNext(app -> {
+                    assertThat(app.getApplicationStatus().getId()).isEqualTo(3);
+                    assertThat(app.getUser()).isEqualTo(user);
+                    assertThat(app.getLoanType()).isEqualTo(loanType);
+                })
+                .verifyComplete();
+
+        // Verify that SQS totals publisher was called once
+        verify(sqsTotalsMessagePublisher).send(argThat(message -> {
+            List<Total> totals = message.getTotalList();
+            assertThat(totals).extracting(Total::totalKey)
+                    .containsExactlyInAnyOrder("approved_applications", "approved_applications_amount");
+            assertThat(totals).extracting(Total::totalValue)
+                    .contains("5", "15000");
+            return true;
+        }));
+    }
+
 }
