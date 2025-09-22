@@ -30,7 +30,7 @@ adapters:
 adapter:
   restconsumer:
     timeout: 5000
-    url: "http://autenticacion:8080"
+    url: "${AUTH_URL:http://auth-server-url:8080}"
   sqs:
     region: "us-east-2"
     applicationUpdateQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Application-Update"
@@ -45,7 +45,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health,prometheus"
+        include: "health,prometheus,env"
   endpoint:
     health:
       probes:

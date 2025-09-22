@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/webjars/swagger-ui/*").permitAll()
                         .pathMatchers("/v3/api-docs/*").permitAll()
+                        .pathMatchers("/actuator/*").permitAll()
                         .anyExchange().access(customAuthorizationManager) // dynamic DB permissions
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
