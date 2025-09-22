@@ -10,19 +10,19 @@ import com.crediya.model.loantype.LoanType;
 import com.crediya.model.loantype.gateways.LoanTypeRepository;
 import com.crediya.model.pagination.Page;
 import com.crediya.model.pagination.PageRequest;
-import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
-import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
-import com.crediya.model.sqsmessage.SqsTotalsMessage;
-import com.crediya.model.sqsmessage.Total;
+import com.crediya.model.sqsmessage.*;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +39,7 @@ class ApplicationUseCaseTest {
     private SqsMessagePublisher<SqsApplicationUpdateMessage> sqsApplicationUpdateMessagePublisher;
     private SqsMessagePublisher<SqsCheckDebtCapacityMessage> sqsCheckDebtCapacityMessagePublisher;
     private SqsMessagePublisher<SqsTotalsMessage> sqsTotalsMessagePublisher;
+    private SqsMessagePublisher<SqsTotalsSummaryMessage> sqsTotalsSummaryMessagePublisher;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -50,6 +51,7 @@ class ApplicationUseCaseTest {
         sqsApplicationUpdateMessagePublisher = Mockito.mock(SqsMessagePublisher.class);
         sqsCheckDebtCapacityMessagePublisher = Mockito.mock(SqsMessagePublisher.class);
         sqsTotalsMessagePublisher = Mockito.mock(SqsMessagePublisher.class);
+        sqsTotalsSummaryMessagePublisher = Mockito.mock(SqsMessagePublisher.class);
 
         applicationUseCase = new ApplicationUseCase(
                 userRepository,
@@ -58,7 +60,8 @@ class ApplicationUseCaseTest {
                 applicationStatusRepository,
                 sqsApplicationUpdateMessagePublisher,
                 sqsCheckDebtCapacityMessagePublisher,
-                sqsTotalsMessagePublisher
+                sqsTotalsMessagePublisher,
+                sqsTotalsSummaryMessagePublisher
         );
     }
 
@@ -507,6 +510,35 @@ class ApplicationUseCaseTest {
                     .contains("5", "15000");
             return true;
         }));
+    }
+
+    @Test
+    void sendSummaryReport_shouldReturnMessageId() {
+        // given
+        Long approvedCount = 5L;
+        BigDecimal approvedAmount = new BigDecimal("12345.67");
+        List<String> adminEmails = Arrays.asList("admin1@test.com", "admin2@test.com");
+        String messageId = "mocked-message-id";
+
+        when(applicationRepository.countByApplicationStatusId(3))
+                .thenReturn(Mono.just(approvedCount));
+
+        when(applicationRepository.approvedApplicationsTotalAmount())
+                .thenReturn(Mono.just(approvedAmount));
+
+        when(userRepository.findAllAdminEmails())
+                .thenReturn(Flux.fromIterable(adminEmails));
+
+        when(sqsTotalsSummaryMessagePublisher.send(any(SqsTotalsSummaryMessage.class)))
+                .thenReturn(Mono.just(messageId));
+
+        // when
+        Mono<String> result = applicationUseCase.sendSummaryReport();
+
+        // then
+        StepVerifier.create(result)
+                .expectNext(messageId)
+                .verifyComplete();
     }
 
 }

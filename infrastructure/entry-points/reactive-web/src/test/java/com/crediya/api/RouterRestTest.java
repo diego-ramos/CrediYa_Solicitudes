@@ -339,7 +339,7 @@ class RouterRestTest {
                 .exchange()
                 .expectStatus().is5xxServerError()
                 .expectBody(String.class)
-                .isEqualTo("SOL_ERR_006: Error finding application by id: Ocurrió una falla en el sistema.");
+                .isEqualTo("SOL_ERR_007: Error finding application by id: Ocurrió una falla en el sistema.");
     }
 
 

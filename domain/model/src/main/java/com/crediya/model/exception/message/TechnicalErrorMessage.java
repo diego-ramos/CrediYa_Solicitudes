@@ -28,7 +28,10 @@ public enum TechnicalErrorMessage {
             "SOL_ERR_006", "Error finding loan status by id", A_SYSTEM_FAILURE_OCCURRED
     ),
     APPLICATION_FIND_BY_ID(
-            "SOL_ERR_006", "Error finding application by id", A_SYSTEM_FAILURE_OCCURRED
+            "SOL_ERR_007", "Error finding application by id", A_SYSTEM_FAILURE_OCCURRED
+    ),
+    ERROR_SENDING_SUMMARY_REPORT(
+            "SOL_ERR_008", "Error sending summary report", A_SYSTEM_FAILURE_OCCURRED
     );
 
     private final String code;

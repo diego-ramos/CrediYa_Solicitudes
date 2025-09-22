@@ -30,14 +30,19 @@ adapters:
 adapter:
   restconsumer:
     timeout: 5000
-    url: "${AUTH_URL:http://auth-server-url:8080}"
+    url: "${AUTH_URL:http://localhost:8080}"
+    username: asesor@test.com
+    password: 567
   sqs:
     region: "us-east-2"
     applicationUpdateQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Application-Update"
     debtCapacityQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Debt-Capacity"
     totalsQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa_Totals"
+    totalsSummaryQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa_Summary_Report"
     # Only needed in local/dev
     endpoint: "http://localhost:4566 # For localstack only"
+  summarycron:
+    expression: "${SUMMARY_CRON_EXPRESSION:0 * * * * ?}"
 management:
   health:
     circuitbreakers:

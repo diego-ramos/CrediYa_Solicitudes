@@ -6,6 +6,7 @@ import com.crediya.model.loantype.gateways.LoanTypeRepository;
 import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
 import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
 import com.crediya.model.sqsmessage.SqsTotalsMessage;
+import com.crediya.model.sqsmessage.SqsTotalsSummaryMessage;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.gateways.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,12 @@ public class UseCasesConfigTest {
         @Bean
         @SuppressWarnings("unchecked")
         public SqsMessagePublisher<SqsTotalsMessage> sqsTotalsMessagePublisher() {
+            return Mockito.mock(SqsMessagePublisher.class);
+        }
+
+        @Bean
+        @SuppressWarnings("unchecked")
+        public SqsMessagePublisher<SqsTotalsSummaryMessage> sqsTotalsSummaryMessagePublisher() {
             return Mockito.mock(SqsMessagePublisher.class);
         }
     }

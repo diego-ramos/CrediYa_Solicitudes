@@ -4,12 +4,16 @@ package com.crediya.consumer;
 import com.crediya.model.exception.BusinessException;
 import com.crediya.model.exception.TechnicalException;
 import com.crediya.model.exception.message.BusinessErrorMessage;
-import com.crediya.model.exception.message.TechnicalErrorMessage;
 import com.crediya.model.user.User;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
@@ -20,6 +24,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,11 +32,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 class AuthenticationRestConsumerTest {
 
+    @Mock
+    private ObjectMapper mapper;
+
     private MockWebServer mockBackEnd;
     private AuthenticationRestConsumer restConsumer;
 
     @BeforeEach
     void setUp() throws IOException {
+
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
 
@@ -39,7 +48,7 @@ class AuthenticationRestConsumerTest {
                 .baseUrl(mockBackEnd.url("/").toString())
                 .build();
 
-        restConsumer = new AuthenticationRestConsumer(client);
+        restConsumer = new AuthenticationRestConsumer(client, mapper);
 
         // Setup security context with fake JWT
         JwtAuthenticationToken auth = new JwtAuthenticationToken(

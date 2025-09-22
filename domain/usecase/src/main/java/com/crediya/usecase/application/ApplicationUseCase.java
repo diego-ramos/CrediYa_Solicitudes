@@ -11,10 +11,7 @@ import com.crediya.model.loantype.LoanType;
 import com.crediya.model.loantype.gateways.LoanTypeRepository;
 import com.crediya.model.pagination.Page;
 import com.crediya.model.pagination.PageRequest;
-import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
-import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
-import com.crediya.model.sqsmessage.SqsTotalsMessage;
-import com.crediya.model.sqsmessage.Total;
+import com.crediya.model.sqsmessage.*;
 import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
 import com.crediya.model.user.User;
 import com.crediya.model.user.gateways.UserRepository;
@@ -42,6 +39,7 @@ public class ApplicationUseCase {
     private final SqsMessagePublisher<SqsApplicationUpdateMessage> sqsApplicationUpdateMessagePublisher;
     private final SqsMessagePublisher<SqsCheckDebtCapacityMessage> sqsCheckDebtCapacityMessagePublisher;
     private final SqsMessagePublisher<SqsTotalsMessage> sqsTotalsMessagePublisher;
+    private final SqsMessagePublisher<SqsTotalsSummaryMessage> sqsTotalsSummaryMessagePublisher;
 
     public Mono<Application> newApplication(Application application, String tokenEmail) {
         return Mono.zip(
@@ -216,5 +214,20 @@ public class ApplicationUseCase {
                             );
                 });
 
+    }
+
+    public Mono<String> sendSummaryReport() {
+        return Mono.zip(
+                        applicationRepository.countByApplicationStatusId(APPROVED_LOAN_STATUS),
+                        applicationRepository.approvedApplicationsTotalAmount(),
+                        userRepository.findAllAdminEmails().collectList()
+                )
+                .map(tuple -> {
+                    List<Total> totalList = new ArrayList<>();
+                    totalList.add(new Total(APPROVED_APPLICATIONS_KEY, String.valueOf(tuple.getT1())));
+                    totalList.add(new Total(APPROVED_APPLICATIONS_AMOUNT_KEY, String.valueOf(tuple.getT2())));
+                    return new SqsTotalsSummaryMessage(totalList, tuple.getT3());
+                })
+                .flatMap(sqsTotalsSummaryMessagePublisher::send);
     }
 }

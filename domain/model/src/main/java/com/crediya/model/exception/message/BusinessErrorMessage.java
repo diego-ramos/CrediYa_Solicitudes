@@ -28,6 +28,9 @@ public enum BusinessErrorMessage {
     ),
     APPLICATION_NOT_FOUND(
             "BUSS_ERR_S007", "Application not found", VERIFY_YOUR_DATA
+    ),
+    ADMIN_EMAILS_NOT_FOUND(
+            "BUSS_ERR_S007", "Admin Emails Not Found", VERIFY_YOUR_DATA
     )
     ;
 

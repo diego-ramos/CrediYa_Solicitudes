@@ -7,5 +7,6 @@ public record SQSSenderProperties(
      String region,
      String applicationUpdateQueueUrl,
      String debtCapacityQueueUrl,
-     String totalsQueueUrl
+     String totalsQueueUrl,
+     String totalsSummaryQueueUrl
 ){}
