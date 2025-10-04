@@ -1,14 +1,87 @@
-##Spring Configuration
 server:
-  port: 8080
+  port: 8081
 spring:
   application:
-    name: CrediYa
+    name: "CrediYa_Applications"
   devtools:
     add-properties: false
   h2:
     console:
       enabled: true
-      path: /h2
+      path: "/h2"
   profiles:
-    include:
+    include: null
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret: "my-super-secret-key-change-me-123456"
+adapters:
+  mariadb:
+    database: "${DB_NAME:crediya_applications}"
+    host: "${DB_HOST:localhost}"
+    port: "${DB_PORT:3306}"
+    username: "${DB_USER:crediya_user}"
+    password: "${DB_PASSWORD:crediya123}"
+    pool:
+      initial-size: 12
+      max-size: 15
+      max-idle-time: 10
+adapter:
+  restconsumer:
+    timeout: 5000
+    url: "${AUTH_URL:http://localhost:8080}"
+    username: asesor@test.com
+    password: 567
+  sqs:
+    region: "us-east-2"
+    applicationUpdateQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Application-Update"
+    debtCapacityQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa-Debt-Capacity"
+    totalsQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa_Totals"
+    totalsSummaryQueueUrl: "https://sqs.us-east-2.amazonaws.com/557649279192/CrediYa_Summary_Report"
+    # Only needed in local/dev
+    endpoint: "http://localhost:4566 # For localstack only"
+  summarycron:
+    expression: "${SUMMARY_CRON_EXPRESSION:0 * * * * ?}"
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus,env"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+resilience4j:
+  circuitbreaker:
+    instances:
+      testGet:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: "2s"
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: "10s"
+      testPost:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: "2s"
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: "10s"
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8080"
+logging:
+  level:
+    org.springframework.r2dbc.core: "DEBUG"
+    org.springframework.data.r2dbc: DEBUG
+    io.r2dbc.spi: DEBUG
+    dev.miku.r2dbc.mysql: DEBUG   # if you use r2dbc-mysql driver (by miku)
+    io.asyncer.r2dbc.mysql: DEBUG # if you use asyncer fork

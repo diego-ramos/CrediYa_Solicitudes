@@ -1,0 +1,7 @@
+dependencies {
+    implementation project(':usecase')
+    implementation project(':model')
+    implementation 'org.springframework.boot:spring-boot-starter-logging'
+    implementation 'org.springframework:spring-context'
+    implementation 'org.springframework:spring-context-support'
+}

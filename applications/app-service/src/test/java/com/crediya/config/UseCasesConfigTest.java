@@ -1,10 +1,21 @@
 package com.crediya.config;
 
+import com.crediya.model.application.gateways.ApplicationRepository;
+import com.crediya.model.applicationstatus.gateways.ApplicationStatusRepository;
+import com.crediya.model.loantype.gateways.LoanTypeRepository;
+import com.crediya.model.sqsmessage.SqsApplicationUpdateMessage;
+import com.crediya.model.sqsmessage.SqsCheckDebtCapacityMessage;
+import com.crediya.model.sqsmessage.SqsTotalsMessage;
+import com.crediya.model.sqsmessage.SqsTotalsSummaryMessage;
+import com.crediya.model.sqsmessage.gateway.SqsMessagePublisher;
+import com.crediya.model.user.gateways.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UseCasesConfigTest {
@@ -28,17 +39,50 @@ public class UseCasesConfigTest {
 
     @Configuration
     @Import(UseCasesConfig.class)
-    static class TestConfig {
+    static class    TestConfig {
+        @Bean
+        public UserRepository userRepository() {
+            return Mockito.mock(UserRepository.class);
+        }
 
         @Bean
-        public MyUseCase myUseCase() {
-            return new MyUseCase();
+        public ApplicationRepository applicationRepository() {
+            return Mockito.mock(ApplicationRepository.class);
+        }
+
+        @Bean
+        public LoanTypeRepository loanTypeRepository() {
+            return Mockito.mock(LoanTypeRepository.class);
+        }
+
+        @Bean
+        public ApplicationStatusRepository applicationStatusRepository() {
+            return Mockito.mock(ApplicationStatusRepository.class);
+        }
+
+        @Bean
+        @SuppressWarnings("unchecked")
+        public SqsMessagePublisher<SqsApplicationUpdateMessage> sqsApplicationUpdateMessagePublisher() {
+            return Mockito.mock(SqsMessagePublisher.class);
+        }
+
+        @Bean
+        @SuppressWarnings("unchecked")
+        public SqsMessagePublisher<SqsCheckDebtCapacityMessage> sqsCheckDebtCapacityMessagePublisher() {
+            return Mockito.mock(SqsMessagePublisher.class);
+        }
+
+        @Bean
+        @SuppressWarnings("unchecked")
+        public SqsMessagePublisher<SqsTotalsMessage> sqsTotalsMessagePublisher() {
+            return Mockito.mock(SqsMessagePublisher.class);
+        }
+
+        @Bean
+        @SuppressWarnings("unchecked")
+        public SqsMessagePublisher<SqsTotalsSummaryMessage> sqsTotalsSummaryMessagePublisher() {
+            return Mockito.mock(SqsMessagePublisher.class);
         }
     }
 
-    static class MyUseCase {
-        public String execute() {
-            return "MyUseCase Test";
-        }
-    }
 }
